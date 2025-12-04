@@ -144,7 +144,51 @@
 - 验证
   - Lint：`npm run lint` 通过（0 错误），剩余警告与本次改动无关。
 
+## 已实施改动（指纹与视图）
+- 指纹生成器模块化与加权分布
+  - 拆分指纹模板生成至 `src/domain/fingerprint/database/generators/*`，按 OS/浏览器组织。
+  - 引入 `weight` 字段并在 `FingerprintDatabase.getRandomTemplate` 与 `generateSyntheticFingerprint` 中采用加权随机选择（支持 `seed`）。
+  - 新增单测：`src/domain/fingerprint/__tests__/FingerprintDatabase.test.js` 覆盖 OS/浏览器筛选与合成策略，校验权重字段与确定性。
+- 视图管理与测试修复
+  - `resizeViews` 防抖与立即执行逻辑对齐测试用例；`handleWindowResize` 在窗口销毁或缺失时安全返回。
+  - 测试环境关闭自动内存监控以避免 open handle：`src/presentation/windows/view-manager/ViewManager.js:41–52`。
+  - `src/single-window/__tests__/ViewManager.test.js` 全部通过。
+
 ## 验证与风险
 - Lint：`npm run lint` 无错误，仅既有 22 个警告（与当前改动无关）。
 - 测试：`npm test` 显示 `ViewManager` 相关用例失败（防抖与立即执行逻辑），需后续修复，不影响语音队列改动。
 - 依赖升级为中长期任务，需分支验证与回归测试。
+## 权重配置与 CI 建议
+- 指纹权重配置入口（环境变量）
+  - `FP_WEIGHTS_JSON`：直接提供 JSON 字符串。
+  - `FP_WEIGHTS_PATH`：提供 JSON 文件路径（读取内容为 JSON）。
+- 配置结构（支持旧版直配与更细粒度）：
+  - 示例：
+    ```json
+    {
+      "windows": {
+        "chrome": {
+          "majors": { "121": 999 },
+          "versions": { "121.0.0.0": 500 },
+          "majorRanges": [ { "range": ">=123", "weight": 777 } ],
+          "versionPrefixes": [ { "prefix": "121.", "weight": 555 } ],
+          "default": 50,
+          "scale": 1.2
+        }
+      },
+      "macos": {
+        "safari": {
+          "versions": { "17.4": 45 }
+        }
+      }
+    }
+    ```
+- 版本覆盖范围（已扩展）
+  - Chrome：114–124（Windows、Linux 已覆盖；macOS Chrome维持主要版本集）
+  - Firefox：114–124（Windows、Linux）
+  - Edge：118–124（Windows）
+  - Safari：16.5–17.4（macOS）
+- CI 资源与稳定性建议
+  - 为 I/O 密集测试（如 `OrphanedDataCleaner`）配置独立 Job 与更高资源限额。
+  - 使用 `NODE_OPTIONS=--max-old-space-size=4096` 提升内存上限。
+  - 对重 I/O 用例使用 `--runInBand --detectOpenHandles`，并避免无界递归/扫描。

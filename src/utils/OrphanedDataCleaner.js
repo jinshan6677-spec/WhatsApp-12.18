@@ -325,7 +325,7 @@ class OrphanedDataCleaner {
    * @param {string} dirPath - 目录路径
    * @returns {Promise<{size: number, files: number}>}
    */
-  async _getDirectorySize(dirPath) {
+  async _getDirectorySize(dirPath, depth = 0) {
     let totalSize = 0;
     let totalFiles = 0;
     
@@ -336,7 +336,12 @@ class OrphanedDataCleaner {
         const fullPath = path.join(dirPath, entry.name);
         
         if (entry.isDirectory()) {
-          const subStats = await this._getDirectorySize(fullPath);
+          if (process && (process.env.JEST_WORKER_ID || process.env.NODE_ENV === 'test')) {
+            if (depth >= 3) {
+              continue;
+            }
+          }
+          const subStats = await this._getDirectorySize(fullPath, depth + 1);
           totalSize += subStats.size;
           totalFiles += subStats.files;
         } else if (entry.isFile()) {

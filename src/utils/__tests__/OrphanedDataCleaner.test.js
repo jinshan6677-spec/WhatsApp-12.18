@@ -107,7 +107,12 @@ describe('OrphanedDataCleaner', () => {
         { name: 'regular-file.txt', isDirectory: () => false }
       ];
       
-      fs.readdir.mockResolvedValue(mockEntries);
+      fs.readdir.mockImplementation((dirPath) => {
+        const p = dirPath.replace(/\\/g, '/');
+        if (p.endsWith('/Partitions')) return Promise.resolve(mockEntries);
+        if (p.endsWith('/profiles')) return Promise.resolve([]);
+        return Promise.resolve([]);
+      });
       
       // Mock directory stats
       const mockStats = { size: 100, files: 5 };
@@ -139,7 +144,12 @@ describe('OrphanedDataCleaner', () => {
         { name: 'account_existing-2', isDirectory: () => true }
       ];
       
-      fs.readdir.mockResolvedValue(mockEntries);
+      fs.readdir.mockImplementation((dirPath) => {
+        const p = dirPath.replace(/\\/g, '/');
+        if (p.endsWith('/Partitions')) return Promise.resolve(mockEntries);
+        if (p.endsWith('/profiles')) return Promise.resolve([]);
+        return Promise.resolve([]);
+      });
       
       const existingAccountIds = ['existing-1', 'existing-2'];
       const result = await cleaner.scanAndClean(existingAccountIds);
@@ -159,7 +169,12 @@ describe('OrphanedDataCleaner', () => {
         { name: 'account_existing-1', isDirectory: () => true }
       ];
       
-      fs.readdir.mockResolvedValue(mockEntries);
+      fs.readdir.mockImplementation((dirPath) => {
+        const p = dirPath.replace(/\\/g, '/');
+        if (p.endsWith('/Partitions')) return Promise.resolve(mockEntries);
+        if (p.endsWith('/profiles')) return Promise.resolve([]);
+        return Promise.resolve([]);
+      });
       
       // Mock successful removal for existing account
       // Mock failed removal for orphaned account
@@ -188,7 +203,12 @@ describe('OrphanedDataCleaner', () => {
         { name: 'account_orphaned-1', isDirectory: () => true }
       ];
       
-      fs.readdir.mockResolvedValue(mockEntries);
+      fs.readdir.mockImplementation((dirPath) => {
+        const p = dirPath.replace(/\\/g, '/');
+        if (p.endsWith('/Partitions')) return Promise.resolve(mockEntries);
+        if (p.endsWith('/profiles')) return Promise.resolve([]);
+        return Promise.resolve([]);
+      });
       
       // Mock directory stats and removal
       const mockStats = { size: 100, files: 5 };
@@ -318,14 +338,30 @@ describe('OrphanedDataCleaner', () => {
         return Promise.resolve({ size: 0 });
       });
       
-      // Mock recursive call for subdir
-      cleaner._getDirectorySize = jest.fn()
-        .mockResolvedValueOnce({ size: 30, files: 2 }); // For subdir
+      // Mock recursive read for subdir
+      fs.readdir.mockImplementation((dirPath) => {
+        const p = dirPath.replace(/\\/g, '/');
+        if (p.endsWith('/subdir')) {
+          return Promise.resolve([
+            { name: 'inner1.bin', isDirectory: () => false, isFile: () => true },
+            { name: 'inner2.bin', isDirectory: () => false, isFile: () => true }
+          ]);
+        }
+        return Promise.resolve(mockEntries);
+      });
+      fs.stat.mockImplementation((filePath) => {
+        const fp = filePath.replace(/\\/g, '/');
+        if (fp.endsWith('/file1.txt')) return Promise.resolve({ size: 10 });
+        if (fp.endsWith('/file2.txt')) return Promise.resolve({ size: 20 });
+        if (fp.endsWith('/inner1.bin')) return Promise.resolve({ size: 15 });
+        if (fp.endsWith('/inner2.bin')) return Promise.resolve({ size: 15 });
+        return Promise.resolve({ size: 0 });
+      });
       
       const result = await cleaner._getDirectorySize(testDir);
       
-      expect(result.size).toBe(60); // 10 + 20 + 30
-      expect(result.files).toBe(4); // 2 files + 2 files in subdir
+      expect(result.size).toBe(60);
+      expect(result.files).toBe(4);
     });
     
     test('应该处理权限错误', async () => {

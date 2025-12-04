@@ -1,6 +1,14 @@
 'use strict';
 
 const fs = require('fs');
+const winChromeGen = require('./database/generators/windowsChrome');
+const winFirefoxGen = require('./database/generators/windowsFirefox');
+const winEdgeGen = require('./database/generators/windowsEdge');
+const macChromeGen = require('./database/generators/macOSChrome');
+const macFirefoxGen = require('./database/generators/macOSFirefox');
+const macSafariGen = require('./database/generators/macOSSafari');
+const linuxChromeGen = require('./database/generators/linuxChrome');
+const linuxFirefoxGen = require('./database/generators/linuxFirefox');
 /**
  * FingerprintDatabase - Real Browser Fingerprint Database
  * 
@@ -45,477 +53,29 @@ const BrowserType = {
 // Base fingerprint templates for synthetic generation
 const BASE_TEMPLATES = {
   windows: {
-    chrome: generateWindowsChromeTemplates(),
-    firefox: generateWindowsFirefoxTemplates(),
-    edge: generateWindowsEdgeTemplates()
+    chrome: winChromeGen.generate(),
+    firefox: winFirefoxGen.generate(),
+    edge: winEdgeGen.generate()
   },
   macos: {
-    chrome: generateMacOSChromeTemplates(),
-    firefox: generateMacOSFirefoxTemplates(),
-    safari: generateMacOSSafariTemplates()
+    chrome: macChromeGen.generate(),
+    firefox: macFirefoxGen.generate(),
+    safari: macSafariGen.generate()
   },
   linux: {
-    chrome: generateLinuxChromeTemplates(),
-    firefox: generateLinuxFirefoxTemplates()
+    chrome: linuxChromeGen.generate(),
+    firefox: linuxFirefoxGen.generate()
   }
 };
 
-// ==================== Template Generation Functions ====================
-
-/**
- * Generates Windows Chrome fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateWindowsChromeTemplates() {
-  const templates = [];
-  const chromeVersions = [
-    { version: '120.0.0.0', major: 120 },
-    { version: '119.0.0.0', major: 119 },
-    { version: '121.0.0.0', major: 121 },
-    { version: '118.0.0.0', major: 118 },
-    { version: '122.0.0.0', major: 122 }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Google Inc. (Intel)', renderer: 'ANGLE (Intel, Intel(R) UHD Graphics 630 Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) UHD Graphics 630' },
-    { vendor: 'Google Inc. (Intel)', renderer: 'ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) UHD Graphics 620' },
-    { vendor: 'Google Inc. (Intel)', renderer: 'ANGLE (Intel, Intel(R) Iris Xe Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) Iris Xe Graphics' },
-    { vendor: 'Google Inc. (NVIDIA)', renderer: 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 SUPER Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'NVIDIA GeForce GTX 1660 SUPER' },
-    { vendor: 'Google Inc. (NVIDIA)', renderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'NVIDIA GeForce RTX 3060' },
-    { vendor: 'Google Inc. (NVIDIA)', renderer: 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1080 Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'NVIDIA GeForce GTX 1080' },
-    { vendor: 'Google Inc. (NVIDIA)', renderer: 'ANGLE (NVIDIA, NVIDIA GeForce RTX 2070 Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'NVIDIA GeForce RTX 2070' },
-    { vendor: 'Google Inc. (AMD)', renderer: 'ANGLE (AMD, AMD Radeon RX 580 Series Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'AMD', unmaskedRenderer: 'AMD Radeon RX 580 Series' },
-    { vendor: 'Google Inc. (AMD)', renderer: 'ANGLE (AMD, AMD Radeon RX 5700 XT Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'AMD', unmaskedRenderer: 'AMD Radeon RX 5700 XT' },
-    { vendor: 'Google Inc. (AMD)', renderer: 'ANGLE (AMD, AMD Radeon RX 6800 XT Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'AMD', unmaskedRenderer: 'AMD Radeon RX 6800 XT' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1920, height: 1080, colorDepth: 24, pixelRatio: 1 },
-    { width: 2560, height: 1440, colorDepth: 24, pixelRatio: 1 },
-    { width: 1366, height: 768, colorDepth: 24, pixelRatio: 1 },
-    { width: 1536, height: 864, colorDepth: 24, pixelRatio: 1.25 },
-    { width: 3840, height: 2160, colorDepth: 24, pixelRatio: 1.5 },
-    { width: 1680, height: 1050, colorDepth: 24, pixelRatio: 1 },
-    { width: 1440, height: 900, colorDepth: 24, pixelRatio: 1 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 4, deviceMemory: 4, maxTouchPoints: 0 },
-    { cpuCores: 6, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 },
-    { cpuCores: 12, deviceMemory: 16, maxTouchPoints: 0 },
-    { cpuCores: 16, deviceMemory: 32, maxTouchPoints: 0 },
-    { cpuCores: 4, deviceMemory: 8, maxTouchPoints: 10 }
-  ];
-  
-  const windowsFonts = ['Arial', 'Arial Black', 'Calibri', 'Cambria', 'Comic Sans MS', 'Consolas', 'Courier New', 'Georgia', 'Impact', 'Lucida Console', 'Segoe UI', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana'];
-  
-  let id = 1;
-  for (const chromeVer of chromeVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `win-chrome-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer.version} Safari/537.36`,
-        platform: 'Win32',
-        vendor: 'Google Inc.',
-        browserVersion: chromeVer.version,
-        majorVersion: chromeVer.major,
-        osVersion: '10.0',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...windowsFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
-
-/**
- * Generates Windows Firefox fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateWindowsFirefoxTemplates() {
-  const templates = [];
-  const firefoxVersions = [
-    { version: '121.0', major: 121 },
-    { version: '120.0', major: 120 },
-    { version: '119.0', major: 119 },
-    { version: '118.0', major: 118 }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Intel Inc.', renderer: 'Intel(R) UHD Graphics 630', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) UHD Graphics 630' },
-    { vendor: 'Intel Inc.', renderer: 'Intel(R) UHD Graphics 620', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) UHD Graphics 620' },
-    { vendor: 'NVIDIA Corporation', renderer: 'GeForce GTX 1660 SUPER/PCIe/SSE2', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'GeForce GTX 1660 SUPER/PCIe/SSE2' },
-    { vendor: 'NVIDIA Corporation', renderer: 'GeForce RTX 3060/PCIe/SSE2', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'GeForce RTX 3060/PCIe/SSE2' },
-    { vendor: 'ATI Technologies Inc.', renderer: 'AMD Radeon RX 580 Series', unmaskedVendor: 'ATI Technologies Inc.', unmaskedRenderer: 'AMD Radeon RX 580 Series' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1920, height: 1080, colorDepth: 24, pixelRatio: 1 },
-    { width: 2560, height: 1440, colorDepth: 24, pixelRatio: 1 },
-    { width: 1366, height: 768, colorDepth: 24, pixelRatio: 1 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 4, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 }
-  ];
-  
-  const windowsFonts = ['Arial', 'Arial Black', 'Calibri', 'Cambria', 'Comic Sans MS', 'Consolas', 'Courier New', 'Georgia', 'Impact', 'Lucida Console', 'Segoe UI', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana'];
-  
-  let id = 1;
-  for (const ffVer of firefoxVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `win-firefox-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${ffVer.major}.0) Gecko/20100101 Firefox/${ffVer.version}`,
-        platform: 'Win32',
-        vendor: '',
-        browserVersion: ffVer.version,
-        majorVersion: ffVer.major,
-        osVersion: '10.0',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...windowsFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
-
-/**
- * Generates Windows Edge fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateWindowsEdgeTemplates() {
-  const templates = [];
-  const edgeVersions = [
-    { version: '120.0.0.0', major: 120 },
-    { version: '119.0.0.0', major: 119 },
-    { version: '121.0.0.0', major: 121 }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Google Inc. (Intel)', renderer: 'ANGLE (Intel, Intel(R) UHD Graphics 630 Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) UHD Graphics 630' },
-    { vendor: 'Google Inc. (NVIDIA)', renderer: 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 SUPER Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'NVIDIA GeForce GTX 1660 SUPER' },
-    { vendor: 'Google Inc. (AMD)', renderer: 'ANGLE (AMD, AMD Radeon RX 580 Series Direct3D11 vs_5_0 ps_5_0, D3D11)', unmaskedVendor: 'AMD', unmaskedRenderer: 'AMD Radeon RX 580 Series' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1920, height: 1080, colorDepth: 24, pixelRatio: 1 },
-    { width: 2560, height: 1440, colorDepth: 24, pixelRatio: 1 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 8, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 }
-  ];
-  
-  const windowsFonts = ['Arial', 'Arial Black', 'Calibri', 'Cambria', 'Comic Sans MS', 'Consolas', 'Courier New', 'Georgia', 'Impact', 'Lucida Console', 'Segoe UI', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana'];
-  
-  let id = 1;
-  for (const edgeVer of edgeVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `win-edge-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${edgeVer.version} Safari/537.36 Edg/${edgeVer.version}`,
-        platform: 'Win32',
-        vendor: 'Google Inc.',
-        browserVersion: edgeVer.version,
-        majorVersion: edgeVer.major,
-        osVersion: '10.0',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...windowsFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
 
 
-/**
- * Generates macOS Chrome fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateMacOSChromeTemplates() {
-  const templates = [];
-  const chromeVersions = [
-    { version: '120.0.0.0', major: 120 },
-    { version: '119.0.0.0', major: 119 },
-    { version: '121.0.0.0', major: 121 },
-    { version: '118.0.0.0', major: 118 }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Google Inc. (Apple)', renderer: 'ANGLE (Apple, Apple M1, OpenGL 4.1)', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M1' },
-    { vendor: 'Google Inc. (Apple)', renderer: 'ANGLE (Apple, Apple M2, OpenGL 4.1)', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M2' },
-    { vendor: 'Google Inc. (Apple)', renderer: 'ANGLE (Apple, Apple M1 Pro, OpenGL 4.1)', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M1 Pro' },
-    { vendor: 'Google Inc. (Intel)', renderer: 'ANGLE (Intel Inc., Intel(R) Iris Plus Graphics 640, OpenGL 4.1)', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) Iris Plus Graphics 640' },
-    { vendor: 'Google Inc. (AMD)', renderer: 'ANGLE (AMD, AMD Radeon Pro 5500M, OpenGL 4.1)', unmaskedVendor: 'AMD', unmaskedRenderer: 'AMD Radeon Pro 5500M' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1440, height: 900, colorDepth: 24, pixelRatio: 2 },
-    { width: 1680, height: 1050, colorDepth: 24, pixelRatio: 2 },
-    { width: 1920, height: 1080, colorDepth: 24, pixelRatio: 2 },
-    { width: 2560, height: 1600, colorDepth: 24, pixelRatio: 2 },
-    { width: 2880, height: 1800, colorDepth: 24, pixelRatio: 2 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 8, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 },
-    { cpuCores: 10, deviceMemory: 16, maxTouchPoints: 0 },
-    { cpuCores: 10, deviceMemory: 32, maxTouchPoints: 0 }
-  ];
-  
-  const macFonts = ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Georgia', 'Helvetica', 'Helvetica Neue', 'Impact', 'Lucida Grande', 'Monaco', 'Palatino', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana', 'SF Pro Display', 'SF Pro Text'];
-  
-  let id = 1;
-  for (const chromeVer of chromeVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `mac-chrome-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer.version} Safari/537.36`,
-        platform: 'MacIntel',
-        vendor: 'Google Inc.',
-        browserVersion: chromeVer.version,
-        majorVersion: chromeVer.major,
-        osVersion: '10.15.7',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...macFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
 
-/**
- * Generates macOS Firefox fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateMacOSFirefoxTemplates() {
-  const templates = [];
-  const firefoxVersions = [
-    { version: '121.0', major: 121 },
-    { version: '120.0', major: 120 },
-    { version: '119.0', major: 119 }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Apple Inc.', renderer: 'Apple M1', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M1' },
-    { vendor: 'Apple Inc.', renderer: 'Apple M2', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M2' },
-    { vendor: 'Intel Inc.', renderer: 'Intel(R) Iris Plus Graphics 640', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) Iris Plus Graphics 640' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1440, height: 900, colorDepth: 24, pixelRatio: 2 },
-    { width: 1680, height: 1050, colorDepth: 24, pixelRatio: 2 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 8, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 }
-  ];
-  
-  const macFonts = ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Georgia', 'Helvetica', 'Helvetica Neue', 'Impact', 'Lucida Grande', 'Monaco', 'Palatino', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana'];
-  
-  let id = 1;
-  for (const ffVer of firefoxVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `mac-firefox-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:${ffVer.major}.0) Gecko/20100101 Firefox/${ffVer.version}`,
-        platform: 'MacIntel',
-        vendor: '',
-        browserVersion: ffVer.version,
-        majorVersion: ffVer.major,
-        osVersion: '10.15',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...macFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
 
-/**
- * Generates macOS Safari fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateMacOSSafariTemplates() {
-  const templates = [];
-  const safariVersions = [
-    { version: '17.2', major: 17, webkitVersion: '605.1.15' },
-    { version: '17.1', major: 17, webkitVersion: '605.1.15' },
-    { version: '16.6', major: 16, webkitVersion: '605.1.15' }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Apple Inc.', renderer: 'Apple M1', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M1' },
-    { vendor: 'Apple Inc.', renderer: 'Apple M2', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M2' },
-    { vendor: 'Apple Inc.', renderer: 'Apple M1 Pro', unmaskedVendor: 'Apple Inc.', unmaskedRenderer: 'Apple M1 Pro' },
-    { vendor: 'Intel Inc.', renderer: 'Intel(R) Iris Plus Graphics 640', unmaskedVendor: 'Intel Inc.', unmaskedRenderer: 'Intel(R) Iris Plus Graphics 640' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1440, height: 900, colorDepth: 24, pixelRatio: 2 },
-    { width: 1680, height: 1050, colorDepth: 24, pixelRatio: 2 },
-    { width: 2560, height: 1600, colorDepth: 24, pixelRatio: 2 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 8, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 },
-    { cpuCores: 10, deviceMemory: 16, maxTouchPoints: 0 }
-  ];
-  
-  const macFonts = ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Georgia', 'Helvetica', 'Helvetica Neue', 'Impact', 'Lucida Grande', 'Monaco', 'Palatino', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana', 'SF Pro Display', 'SF Pro Text'];
-  
-  let id = 1;
-  for (const safariVer of safariVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `mac-safari-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/${safariVer.webkitVersion} (KHTML, like Gecko) Version/${safariVer.version} Safari/${safariVer.webkitVersion}`,
-        platform: 'MacIntel',
-        vendor: 'Apple Computer, Inc.',
-        browserVersion: safariVer.version,
-        majorVersion: safariVer.major,
-        osVersion: '10.15.7',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...macFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
 
-/**
- * Generates Linux Chrome fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateLinuxChromeTemplates() {
-  const templates = [];
-  const chromeVersions = [
-    { version: '120.0.0.0', major: 120 },
-    { version: '119.0.0.0', major: 119 },
-    { version: '121.0.0.0', major: 121 }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Google Inc. (Intel)', renderer: 'ANGLE (Intel, Mesa Intel(R) UHD Graphics 630 (CFL GT2), OpenGL 4.6)', unmaskedVendor: 'Intel', unmaskedRenderer: 'Mesa Intel(R) UHD Graphics 630 (CFL GT2)' },
-    { vendor: 'Google Inc. (NVIDIA)', renderer: 'ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 SUPER/PCIe/SSE2, OpenGL 4.6)', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'NVIDIA GeForce GTX 1660 SUPER/PCIe/SSE2' },
-    { vendor: 'Google Inc. (AMD)', renderer: 'ANGLE (AMD, AMD Radeon RX 580 Series (polaris10, LLVM 15.0.7, DRM 3.49, 6.1.0-13-amd64), OpenGL 4.6)', unmaskedVendor: 'AMD', unmaskedRenderer: 'AMD Radeon RX 580 Series' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1920, height: 1080, colorDepth: 24, pixelRatio: 1 },
-    { width: 2560, height: 1440, colorDepth: 24, pixelRatio: 1 },
-    { width: 1366, height: 768, colorDepth: 24, pixelRatio: 1 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 4, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 },
-    { cpuCores: 12, deviceMemory: 32, maxTouchPoints: 0 }
-  ];
-  
-  const linuxFonts = ['Arial', 'Bitstream Vera Sans', 'Courier New', 'DejaVu Sans', 'DejaVu Sans Mono', 'DejaVu Serif', 'Droid Sans', 'FreeMono', 'FreeSans', 'FreeSerif', 'Georgia', 'Liberation Mono', 'Liberation Sans', 'Liberation Serif', 'Noto Sans', 'Times New Roman', 'Ubuntu', 'Verdana'];
-  
-  let id = 1;
-  for (const chromeVer of chromeVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `linux-chrome-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer.version} Safari/537.36`,
-        platform: 'Linux x86_64',
-        vendor: 'Google Inc.',
-        browserVersion: chromeVer.version,
-        majorVersion: chromeVer.major,
-        osVersion: '6.1.0',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...linuxFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
 
-/**
- * Generates Linux Firefox fingerprint templates
- * @returns {Array<Object>} Array of fingerprint templates
- */
-function generateLinuxFirefoxTemplates() {
-  const templates = [];
-  const firefoxVersions = [
-    { version: '121.0', major: 121 },
-    { version: '120.0', major: 120 },
-    { version: '119.0', major: 119 },
-    { version: '115.0', major: 115 }
-  ];
-  
-  const gpuConfigs = [
-    { vendor: 'Intel', renderer: 'Mesa Intel(R) UHD Graphics 630 (CFL GT2)', unmaskedVendor: 'Intel', unmaskedRenderer: 'Mesa Intel(R) UHD Graphics 630 (CFL GT2)' },
-    { vendor: 'NVIDIA Corporation', renderer: 'GeForce GTX 1660 SUPER/PCIe/SSE2', unmaskedVendor: 'NVIDIA Corporation', unmaskedRenderer: 'GeForce GTX 1660 SUPER/PCIe/SSE2' },
-    { vendor: 'AMD', renderer: 'AMD Radeon RX 580 Series (polaris10, LLVM 15.0.7, DRM 3.49, 6.1.0-13-amd64)', unmaskedVendor: 'AMD', unmaskedRenderer: 'AMD Radeon RX 580 Series' }
-  ];
-  
-  const screenConfigs = [
-    { width: 1920, height: 1080, colorDepth: 24, pixelRatio: 1 },
-    { width: 2560, height: 1440, colorDepth: 24, pixelRatio: 1 }
-  ];
-  
-  const hardwareConfigs = [
-    { cpuCores: 4, deviceMemory: 8, maxTouchPoints: 0 },
-    { cpuCores: 8, deviceMemory: 16, maxTouchPoints: 0 }
-  ];
-  
-  const linuxFonts = ['Arial', 'Bitstream Vera Sans', 'Courier New', 'DejaVu Sans', 'DejaVu Sans Mono', 'DejaVu Serif', 'Droid Sans', 'FreeMono', 'FreeSans', 'FreeSerif', 'Georgia', 'Liberation Mono', 'Liberation Sans', 'Liberation Serif', 'Noto Sans', 'Times New Roman', 'Ubuntu', 'Verdana'];
-  
-  let id = 1;
-  for (const ffVer of firefoxVersions) {
-    for (const gpu of gpuConfigs) {
-      templates.push({
-        id: `linux-firefox-${String(id++).padStart(3, '0')}`,
-        userAgent: `Mozilla/5.0 (X11; Linux x86_64; rv:${ffVer.major}.0) Gecko/20100101 Firefox/${ffVer.version}`,
-        platform: 'Linux x86_64',
-        vendor: '',
-        browserVersion: ffVer.version,
-        majorVersion: ffVer.major,
-        osVersion: '6.1.0',
-        webgl: { ...gpu },
-        screen: screenConfigs[id % screenConfigs.length],
-        hardware: hardwareConfigs[id % hardwareConfigs.length],
-        fonts: [...linuxFonts]
-      });
-    }
-  }
-  
-  return templates;
-}
+
+
 
 // ==================== FingerprintDatabase Class ====================
 
@@ -568,6 +128,11 @@ class FingerprintDatabase {
         console.warn(`Could not load external fingerprint database: ${error.message}`);
       }
     }
+
+    const overrides = this._getWeightOverridesFromEnv();
+    if (overrides) {
+      this._applyWeightOverrides(templates, overrides);
+    }
     
     return templates;
   }
@@ -590,6 +155,112 @@ class FingerprintDatabase {
         target[os][browser].push(...source[os][browser]);
       }
     }
+  }
+
+  _getWeightOverridesFromEnv() {
+    try {
+      const jsonStr = process.env.FP_WEIGHTS_JSON;
+      if (jsonStr) {
+        return JSON.parse(jsonStr);
+      }
+      const filePath = process.env.FP_WEIGHTS_PATH;
+      if (filePath) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        return JSON.parse(content);
+      }
+    } catch (e) {
+      console.warn(`[FingerprintDatabase] Failed to load weight overrides: ${e.message}`);
+    }
+    return null;
+  }
+
+  _applyWeightOverrides(templates, overrides) {
+    const applyForOsBrowser = (os, browser, spec) => {
+      const list = templates[os]?.[browser];
+      if (!list || !spec) return;
+
+      const majors = spec.majors || {};
+      const versions = spec.versions || {};
+      const majorRanges = Array.isArray(spec.majorRanges) ? spec.majorRanges : [];
+      const versionPrefixes = Array.isArray(spec.versionPrefixes) ? spec.versionPrefixes : [];
+      const defaultWeight = typeof spec.default === 'number' ? spec.default : null;
+      const scale = typeof spec.scale === 'number' ? spec.scale : null;
+
+      for (const item of list) {
+        let w = item.weight || 1;
+        const mKey = String(item.majorVersion);
+        const vKey = item.browserVersion;
+
+        const legacyMajor = spec[mKey];
+        const legacyVersion = spec[vKey];
+
+        if (typeof legacyMajor === 'number' && legacyMajor > 0) {
+          w = legacyMajor;
+        } else if (typeof legacyVersion === 'number' && legacyVersion > 0) {
+          w = legacyVersion;
+        } else if (typeof majors[mKey] === 'number' && majors[mKey] > 0) {
+          w = majors[mKey];
+        } else if (typeof versions[vKey] === 'number' && versions[vKey] > 0) {
+          w = versions[vKey];
+        } else {
+          let applied = false;
+          for (const r of majorRanges) {
+            if (typeof r === 'object' && r && typeof r.range === 'string' && typeof r.weight === 'number') {
+              if (this._matchMajorRange(item.majorVersion, r.range)) {
+                w = r.weight;
+                applied = true;
+                break;
+              }
+            }
+          }
+          if (!applied) {
+            for (const p of versionPrefixes) {
+              if (typeof p === 'object' && p && typeof p.prefix === 'string' && typeof p.weight === 'number') {
+                if (vKey.startsWith(p.prefix)) {
+                  w = p.weight;
+                  applied = true;
+                  break;
+                }
+              }
+            }
+          }
+          if (!applied && defaultWeight && defaultWeight > 0) {
+            w = defaultWeight;
+          }
+        }
+
+        if (scale && scale > 0) {
+          w = Math.max(1, Math.round(w * scale));
+        }
+
+        item.weight = w;
+      }
+    };
+
+    for (const os of Object.keys(overrides || {})) {
+      const browsers = overrides[os];
+      if (!browsers) continue;
+      for (const browser of Object.keys(browsers)) {
+        applyForOsBrowser(os, browser, browsers[browser]);
+      }
+    }
+  }
+
+  _matchMajorRange(major, expr) {
+    if (typeof major !== 'number') return false;
+    if (typeof expr !== 'string') return false;
+    const t = expr.trim();
+    if (/^\d+$/.test(t)) return major === Number(t);
+    if (/^\d+\-\d+$/.test(t)) {
+      const [a, b] = t.split('-').map(n => Number(n));
+      return major >= a && major <= b;
+    }
+    if (/^>=\d+$/.test(t)) return major >= Number(t.slice(2));
+    if (/^>\d+$/.test(t)) return major > Number(t.slice(1));
+    if (/^<=\d+$/.test(t)) return major <= Number(t.slice(2));
+    if (/^<\d+$/.test(t)) return major < Number(t.slice(1));
+    if (/^==\d+$/.test(t)) return major === Number(t.slice(2));
+    return false;
   }
 
  
@@ -678,7 +349,7 @@ class FingerprintDatabase {
   getRandomTemplate(filters = {}) {
     this.initialize();
     let candidates = [];
-    
+
     if (filters.os && filters.browser) {
       candidates = this.getByOSAndBrowser(filters.os, filters.browser);
     } else if (filters.os) {
@@ -696,13 +367,17 @@ class FingerprintDatabase {
         }
       }
     }
-    
+
     if (candidates.length === 0) {
       return null;
     }
-    
-    const randomIndex = Math.floor(Math.random() * candidates.length);
-    return { ...candidates[randomIndex] };
+
+    const random = filters.seed !== undefined
+      ? this._seededRandom(filters.seed)
+      : Math.random;
+
+    const picked = this._weightedRandomChoice(candidates, random);
+    return picked ? { ...picked } : null;
   }
 
   /**
@@ -734,7 +409,7 @@ class FingerprintDatabase {
       : Math.random;
     
     // Select base template
-    const baseTemplate = templates[Math.floor(random() * templates.length)];
+    const baseTemplate = this._weightedRandomChoice(templates, random);
     
     // Get all templates for the same OS to mix components
     const osTemplates = [];
@@ -744,8 +419,8 @@ class FingerprintDatabase {
     }
     
     // Mix components from different templates to create synthetic combination
-    const screenTemplate = osTemplates[Math.floor(random() * osTemplates.length)];
-    const hardwareTemplate = osTemplates[Math.floor(random() * osTemplates.length)];
+    const screenTemplate = this._weightedRandomChoice(osTemplates, random);
+    const hardwareTemplate = this._weightedRandomChoice(osTemplates, random);
     
     // Create synthetic fingerprint
     const synthetic = {
@@ -814,6 +489,20 @@ class FingerprintDatabase {
       state = (state * 1664525 + 1013904223) >>> 0;
       return state / 4294967296;
     };
+  }
+
+  _weightedRandomChoice(list, randomFn) {
+    if (!Array.isArray(list) || list.length === 0) return null;
+    const weights = list.map(item => typeof item.weight === 'number' && item.weight > 0 ? item.weight : 1);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let threshold = (typeof randomFn === 'function' ? randomFn() : Math.random) * total;
+    for (let i = 0; i < list.length; i++) {
+      if (threshold < weights[i]) {
+        return list[i];
+      }
+      threshold -= weights[i];
+    }
+    return list[list.length - 1];
   }
 
   /**

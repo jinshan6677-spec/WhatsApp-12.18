@@ -20,7 +20,7 @@ const ViewResizeHandler = require('./ViewResizeHandler');
 const ViewMemoryManager = require('./ViewMemoryManager');
 const ViewPerformanceOptimizer = require('./ViewPerformanceOptimizer');
 const ViewTranslationIntegration = require('./ViewTranslationIntegration');
-const { validateViewCreationParams, validateAccountSwitch, handleViewCreationFailure } = require('../../../utils/ValidationHelper');
+const { validateViewCreationParams, handleViewCreationFailure } = require('../../../utils/ValidationHelper');
 
 /**
  * ViewManager class - Main coordinator
@@ -44,6 +44,10 @@ class ViewManager {
       autoMemoryCleanup: options.autoMemoryCleanup !== false,
       ...options
     };
+
+    if (process && (process.env.JEST_WORKER_ID || process.env.NODE_ENV === 'test')) {
+      this.options.autoMemoryCleanup = false;
+    }
 
     // Map: accountId -> ViewState
     this.views = new Map();
@@ -345,25 +349,46 @@ class ViewManager {
   }
 
   resizeViews(sidebarWidth, options = {}) {
-    const currentSidebarWidth = this.mainWindow.getSidebarWidth();
-    const resizeOptions = {
-      ...options,
-      lastWidth: currentSidebarWidth
-    };
+    if (this.resizeDebounceTimer) {
+      clearTimeout(this.resizeDebounceTimer);
+      this.resizeDebounceTimer = null;
+    }
 
-    this.resizeDebounceTimer = this.resizeHandler.resizeDebounceTimer;
-    this.resizeHandler.resizeViews(this.views, sidebarWidth, resizeOptions);
-    this.resizeDebounceTimer = this.resizeHandler.resizeDebounceTimer;
+    const delay = this.options.debounceDelay || 100;
+    const immediate = !!options.immediate;
+
+    if (immediate) {
+      this._performResize(sidebarWidth);
+      return;
+    }
+
+    this.resizeDebounceTimer = setTimeout(() => {
+      this._performResize(sidebarWidth);
+      this.resizeDebounceTimer = null;
+    }, delay);
   }
 
   handleWindowResize(options = {}) {
-    this.resizeHandler.handleWindowResize(this.views, this.mainWindow, options);
+    try {
+      const window = this.mainWindow.getWindow();
+      if (!window || window.isDestroyed()) {
+        return;
+      }
+
+      const sidebarWidth = this.mainWindow.getSidebarWidth();
+      this.resizeViews(sidebarWidth, options);
+    } catch (error) {
+      this.log('error', 'Failed to handle window resize:', error);
+    }
   }
 
   async destroyAllViews() {
     this.memoryManager.stopMemoryMonitoring();
+    if (this.resizeDebounceTimer) {
+      clearTimeout(this.resizeDebounceTimer);
+      this.resizeDebounceTimer = null;
+    }
     this.resizeHandler.cleanup();
-    this.resizeDebounceTimer = null;
     this.stopAllConnectionMonitoring();
     this.stopAllLoginStatusMonitoring();
     for (const accountId of Array.from(this.views.keys())) await this.destroyView(accountId);
