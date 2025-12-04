@@ -148,6 +148,10 @@ function registerIPCHandlers(accountManager, viewManager, mainWindow, translatio
       console.log('[IPC] stt:groq: 模型:', model);
       console.log('[IPC] stt:groq: 音频大小:', audioBlob.length, 'bytes');
 
+      if (!apiKey || !String(apiKey).trim().length) {
+        return { success: false, error: '未设置 Groq API Key', retryable: false };
+      }
+
       const apiUrl = 'https://api.groq.com/openai/v1/audio/transcriptions';
 
       // 动态导入 node-fetch 和 form-data
@@ -210,6 +214,9 @@ function registerIPCHandlers(accountManager, viewManager, mainWindow, translatio
 
   ipcMain.handle('llm:groq-translate', async (event, { apiKey, model, prompt }) => {
     try {
+      if (!apiKey || !String(apiKey).trim().length) {
+        return { success: false, error: '未设置 Groq API Key' };
+      }
       const apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
       const fetch = require('node-fetch');
 

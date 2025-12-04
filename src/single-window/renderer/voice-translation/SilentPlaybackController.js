@@ -142,11 +142,13 @@ class SilentPlaybackController {
         try {
             const audios = document.querySelectorAll('audio');
             audios.forEach(audio => {
-                if (!window.__SILENT_PLAYBACK_MODE__ && (audio.muted || audio.volume === 0 || audio.defaultMuted)) {
-                    console.log('[SilentPlaybackController] 发现异常静音音频，正在恢复...');
-                    audio.muted = false;
-                    audio.volume = 1;
-                    try { audio.defaultMuted = false; } catch (_) {}
+                // 仅恢复由本控制器修改过的音频元素，避免误触发全局取消静音
+                if (!window.__SILENT_PLAYBACK_MODE__ && audio._originalState) {
+                    try {
+                        audio.volume = audio._originalState.volume;
+                        audio.muted = audio._originalState.muted;
+                        delete audio._originalState;
+                    } catch (_) {}
                 }
             });
         } catch (e) {
@@ -307,14 +309,6 @@ class SilentPlaybackController {
             this.currentAudio = null;
         }
         this.isPlaying = false;
-        try {
-            const audios = document.querySelectorAll('audio');
-            audios.forEach(a => {
-                a.muted = false;
-                if (a.volume === 0) a.volume = 1;
-                try { a.defaultMuted = false; } catch (_) {}
-            });
-        } catch (_) {}
     }
 
     captureCurrentForegroundAudio() {

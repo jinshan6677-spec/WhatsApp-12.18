@@ -32,6 +32,22 @@ class VoiceMessageTranslator {
             }
 
             const adv = (this.core && this.core.config && this.core.config.advanced) || {};
+            // 全局回退：如果当前账号未配置 Groq STT，则尝试读取全局引擎配置
+            try {
+                const hasKey = adv.groqApiKey && String(adv.groqApiKey).trim().length > 0;
+                if (!hasKey && window.translationAPI && typeof window.translationAPI.getEngineConfig === 'function') {
+                    const resp = await window.translationAPI.getEngineConfig('groqSTT');
+                    if (resp && resp.success && resp.data && resp.data.enabled && resp.data.apiKey) {
+                        adv.groqApiKey = resp.data.apiKey;
+                        adv.groqModel = adv.groqModel || resp.data.model || 'whisper-large-v3';
+                        adv.groqTextModel = adv.groqTextModel || 'llama-3.1-70b-versatile';
+                        adv.groqTextModelFallback = adv.groqTextModelFallback || 'llama-3.1-8b-instant';
+                        console.log('[VoiceMessageTranslator] 使用全局 Groq STT 配置作为回退');
+                    }
+                }
+            } catch (e) {
+                console.warn('[VoiceMessageTranslator] 读取全局 Groq STT 配置失败:', e.message);
+            }
             this.voiceTranslator = new VoiceTranslationModule({
                 translationAPI: window.translationAPI,
                 config: {
@@ -73,6 +89,9 @@ class VoiceMessageTranslator {
      * 为语音消息添加翻译按钮
      */
     addTranslateButtons() {
+        const adv = (this.core && this.core.config && this.core.config.advanced) || {};
+        const hasKey = adv.groqApiKey && String(adv.groqApiKey).trim().length > 0;
+        if (!hasKey) return;
         const selectors = this.ui.getVoiceAnchorSelectors();
         const elements = [];
         selectors.forEach(sel => elements.push(...document.querySelectorAll(sel)));

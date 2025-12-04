@@ -39,6 +39,8 @@ class VoiceTranslationModule {
 
             if (!this.stt.isSupported()) {
                 console.warn('[VoiceTranslationModule] STT 不可用');
+                this.isInitialized = false;
+                return;
             }
 
             this.isInitialized = true;
@@ -66,6 +68,11 @@ class VoiceTranslationModule {
     async translateVoiceMessage(messageElement, options = {}) {
         if (!this.isAvailable()) {
             throw new Error('语音翻译功能不可用');
+        }
+        // 前置校验：必须配置有效的 Groq API Key，避免触发任何播放行为
+        const apiKey = (this.config && typeof this.config.groqApiKey === 'string') ? this.config.groqApiKey.trim() : '';
+        if (!apiKey) {
+            throw new Error('未设置语音翻译 API，请在设置中配置 Groq API Key');
         }
         if (this.queue.length >= this.maxQueueSize) {
             throw new Error('翻译队列已满，请稍后再试');

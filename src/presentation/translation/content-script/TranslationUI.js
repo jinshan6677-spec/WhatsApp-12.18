@@ -6,6 +6,8 @@
 class TranslationUI {
   constructor(core) {
     this.core = core;
+    this._copyHandlersAttached = false;
+    this.attachCopyHandlers();
   }
 
   /**
@@ -414,6 +416,77 @@ class TranslationUI {
         // 4. Smart Line Breaking / Spacing - Compact
         const gapSize = isVoiceResult ? (hasLineBreaks ? '4px' : '2px') : (hasLineBreaks ? '6px' : '4px');
         wrapper.style.gap = gapSize;
+    }
+
+    attachCopyHandlers() {
+      if (this._copyHandlersAttached) return;
+      const isTranslationContainer = (el) => {
+        if (!el) return false;
+        return (
+          el.closest('.wa-realtime-preview') ||
+          el.closest('.wa-translation-result') ||
+          el.closest('.wa-voice-result-container')
+        );
+      };
+      const resolveTargetTextEl = (target) => {
+        if (!target) return null;
+        return target.closest('.original-text, .result-text, .translation-text, .wa-voice-original-text, .wa-voice-translated-text');
+      };
+      const getSelectionTextIfInside = (container) => {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return '';
+        const range = sel.getRangeAt(0);
+        const ancestor = range.commonAncestorContainer.nodeType === 1
+          ? range.commonAncestorContainer
+          : range.commonAncestorContainer.parentElement;
+        if (ancestor && container.contains(ancestor)) {
+          return sel.toString();
+        }
+        return '';
+      };
+      const copyText = async (text) => {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch (_) {}
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.top = '-1000px';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          return ok;
+        } catch (_) {
+          return false;
+        }
+      };
+      document.addEventListener('click', async (e) => {
+        if (!e.ctrlKey) return;
+        const targetEl = resolveTargetTextEl(e.target);
+        if (!targetEl) return;
+        if (!isTranslationContainer(targetEl)) return;
+        const selected = getSelectionTextIfInside(targetEl).trim();
+        const text = selected || (targetEl.textContent || '').trim();
+        if (!text) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const ok = await copyText(text);
+        if (ok) {
+          const isOriginal = targetEl.classList.contains('original-text') || targetEl.classList.contains('wa-voice-original-text');
+          const isTranslated = targetEl.classList.contains('result-text') || targetEl.classList.contains('wa-voice-translated-text') || targetEl.classList.contains('translation-text');
+          const msg = isOriginal ? '已复制原文' : (isTranslated ? '已复制译文' : '已复制');
+          this.showToast(msg, 'success');
+        } else {
+          this.showToast('复制失败', 'error');
+        }
+      }, true);
+      this._copyHandlersAttached = true;
     }
 
   /**

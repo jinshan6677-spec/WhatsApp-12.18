@@ -52,7 +52,7 @@ class GroqSTT {
     }
 
     isSupported() {
-        return true;
+        return !!(this.apiKey && String(this.apiKey).trim().length > 0);
     }
 
     async checkStatus() {

@@ -145,7 +145,8 @@
           this.messageTranslator.translateExistingMessages();
         }
 
-        const vEnabled = !!(config && config.advanced && config.advanced.voiceTranslation);
+        const hasKey = !!(config && config.advanced && config.advanced.groqApiKey && String(config.advanced.groqApiKey).trim().length > 0);
+        const vEnabled = !!(config && config.advanced && config.advanced.voiceTranslation) && hasKey;
           if (vEnabled) {
             if (!this.voiceTranslator && typeof window.VoiceMessageTranslator !== 'undefined') {
               this.voiceTranslator = new window.VoiceMessageTranslator(this.core, this.ui);
@@ -245,7 +246,7 @@
         this.initialized = true;
 
         // Initialize voice translation module if enabled
-        if (this.core.config.advanced.voiceTranslation) {
+        if (this.core.config.advanced.voiceTranslation && this.core.config.advanced.groqApiKey && String(this.core.config.advanced.groqApiKey).trim().length > 0) {
           try {
             console.log('[Translation] Initializing voice translation module...');
 

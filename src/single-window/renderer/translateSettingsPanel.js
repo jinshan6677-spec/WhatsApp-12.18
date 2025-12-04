@@ -1066,6 +1066,10 @@
           friendConfigs: this.config.friendConfigs || {}
         };
 
+        if (!newConfig.advanced.groqApiKey || !String(newConfig.advanced.groqApiKey).trim().length) {
+          newConfig.advanced.voiceTranslation = false;
+        }
+
         // 保存当前引擎的 API 配置
         const currentEngine = newConfig.global.engine;
         if (['custom', 'gpt4', 'gemini', 'deepseek'].includes(currentEngine)) {
@@ -1084,6 +1088,60 @@
         if (response.success) {
           console.log('[TranslateSettingsPanel] Config saved successfully');
           this.config = newConfig;
+
+          // 保存 Groq STT 配置为全局引擎，以便账号切换时可复用
+          try {
+            const gKey = (newConfig.advanced.groqApiKey || '').trim();
+            const gModel = (newConfig.advanced.groqModel || 'whisper-large-v3').trim();
+            if (gKey && window.translationAPI && typeof window.translationAPI.saveEngineConfig === 'function') {
+              await window.translationAPI.saveEngineConfig('groqSTT', {
+                apiKey: gKey,
+                model: gModel,
+                enabled: true
+              });
+              console.log('[TranslateSettingsPanel] 全局保存 Groq STT 引擎配置');
+            } else if (window.translationAPI && typeof window.translationAPI.saveEngineConfig === 'function') {
+              await window.translationAPI.saveEngineConfig('groqSTT', {
+                enabled: false
+              });
+              console.log('[TranslateSettingsPanel] 已清除全局 Groq STT 引擎配置');
+            }
+          } catch (e) {
+            console.warn('[TranslateSettingsPanel] 保存 Groq STT 全局配置失败:', e.message);
+          }
+
+          try {
+            const gKeySync = (newConfig.advanced.groqApiKey || '').trim();
+            if (window.electronAPI && typeof window.electronAPI.invoke === 'function' && window.translationAPI) {
+              const accResp = await window.electronAPI.invoke('get-accounts');
+              const accounts = Array.isArray(accResp) ? accResp : (accResp?.accounts || accResp?.data || []);
+              for (const acc of accounts) {
+                const accId = acc && acc.id ? acc.id : acc;
+                if (!accId || accId === this.accountId) continue;
+                const cfgResp = await window.translationAPI.getConfig(accId);
+                const cfg = (cfgResp && cfgResp.success) ? (cfgResp.config || cfgResp.data || {}) : {};
+                const hasKey = cfg && cfg.advanced && cfg.advanced.groqApiKey && String(cfg.advanced.groqApiKey).trim().length > 0;
+                if (!cfg.global || typeof cfg.global !== 'object') cfg.global = this.config.global || {};
+                if (!cfg.inputBox || typeof cfg.inputBox !== 'object') cfg.inputBox = this.config.inputBox || {};
+                if (!cfg.advanced || typeof cfg.advanced !== 'object') cfg.advanced = {};
+                if (!cfg.friendConfigs || typeof cfg.friendConfigs !== 'object') cfg.friendConfigs = cfg.friendConfigs || {};
+                if (gKeySync) {
+                  if (hasKey) continue;
+                  cfg.advanced.groqApiKey = gKeySync;
+                  cfg.advanced.groqModel = newConfig.advanced.groqModel || cfg.advanced.groqModel || 'whisper-large-v3';
+                  cfg.advanced.groqTextModel = newConfig.advanced.groqTextModel || cfg.advanced.groqTextModel || 'llama-3.1-70b-versatile';
+                  cfg.advanced.groqTextModelFallback = newConfig.advanced.groqTextModelFallback || cfg.advanced.groqTextModelFallback || 'llama-3.1-8b-instant';
+                } else {
+                  cfg.advanced.groqApiKey = '';
+                  cfg.advanced.voiceTranslation = false;
+                }
+                await window.translationAPI.saveConfig(accId, cfg);
+              }
+              console.log('[TranslateSettingsPanel] 已同步 Groq 语音翻译配置到其他账号');
+            }
+          } catch (e) {
+            console.warn('[TranslateSettingsPanel] 同步 Groq 配置到其他账号失败:', e.message);
+          }
 
           // 立即应用配置到视图
           if (this.applyConfigToView) {
