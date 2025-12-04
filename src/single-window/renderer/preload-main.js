@@ -1007,7 +1007,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'view-manager:account-closing',
       'view-manager:account-closed',
       'view-manager:account-close-failed',
-      'view-manager:view-switch-failed',
       'view-manager:account-profile-updated'
     ];
 

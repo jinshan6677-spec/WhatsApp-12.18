@@ -239,7 +239,7 @@ class CacheManager {
 
     // Clear from memory cache - need to iterate and remove matching keys
     const keysToDelete = [];
-    for (const [key, value] of this.cache.entries()) {
+    for (const [key] of this.cache.entries()) {
       // Check if this cache entry belongs to the account
       // We need to check the file to get the accountId
       if (this.cacheDir) {

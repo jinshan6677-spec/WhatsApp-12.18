@@ -72,9 +72,6 @@ class VoiceMessageTranslator {
     /**
      * 为语音消息添加翻译按钮
      */
-    /**
-     * 为语音消息添加翻译按钮
-     */
     addTranslateButtons() {
         const selectors = this.ui.getVoiceAnchorSelectors();
         const elements = [];

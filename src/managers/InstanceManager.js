@@ -287,7 +287,7 @@ class InstanceManager {
       
       // 2. 创建独立的 session partition
       const partition = `persist:account_${id}`;
-      const instanceSession = this.electron.session.fromPartition(partition, { cache: true });
+      this.electron.session.fromPartition(partition, { cache: true });
       
       // 2.3. 配置 session 持久化选项
       if (this.sessionManager) {
@@ -473,7 +473,6 @@ class InstanceManager {
    * @returns {Object} 验证后的窗口边界
    */
   _validateWindowBounds(bounds) {
-    const { screen } = require('electron');
     
     // 如果没有指定位置，返回默认值（让系统自动定位）
     if (bounds.x === undefined || bounds.y === undefined) {

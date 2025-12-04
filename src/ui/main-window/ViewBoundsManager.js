@@ -135,7 +135,7 @@ class ViewBoundsManager {
       const bounds = this.calculateBounds(sidebarWidth);
 
       // 更新所有视图的边界
-      for (const [accountId, viewState] of views) {
+      for (const [, viewState] of views) {
         viewState.bounds = bounds;
         
         // 更新所有视图，不只是可见的

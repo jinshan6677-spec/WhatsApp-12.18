@@ -339,7 +339,6 @@ class FingerprintConfig {
     }
 
     // Validate OS platform
-    const validPlatforms = ['Win32', 'MacIntel', 'Linux x86_64', 'Linux armv7l', 'Linux aarch64'];
     if (!this.os.platform || typeof this.os.platform !== 'string') {
       errors.push({ field: 'os.platform', reason: 'OS platform is required', value: this.os.platform });
     }

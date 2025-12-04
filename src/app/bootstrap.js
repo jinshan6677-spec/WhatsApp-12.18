@@ -11,17 +11,17 @@ const { app } = require('electron');
 const path = require('path');
 
 // 导入统一导出模块
-const { APP_INFO, EVENTS, ERROR_CODES } = require('./constants');
+const { APP_INFO } = require('./constants');
 
 // 导入新架构核心组件
 const { EventBus } = require('../core/eventbus/EventBus');
-const { ConfigProvider, getGlobalConfigProvider } = require('../core/config/ConfigProvider');
-const { StateManager, getGlobalStateManager } = require('../core/state/StateManager');
+const { getGlobalConfigProvider } = require('../core/config/ConfigProvider');
+const { getGlobalStateManager } = require('../core/state/StateManager');
 const { getGlobalContainer } = require('../core/container/DependencyContainer');
 const { PluginManager } = require('../infrastructure/plugins/PluginManager');
-const { PluginContext, createPluginContext } = require('../infrastructure/plugins/PluginContext');
+const { createPluginContext } = require('../infrastructure/plugins/PluginContext');
 const { IPCRouter } = require('../presentation/ipc/IPCRouter');
-const { ErrorHandler, getGlobalErrorHandler } = require('../core/errors/ErrorHandler');
+const { getGlobalErrorHandler } = require('../core/errors/ErrorHandler');
 
  
 
@@ -33,8 +33,7 @@ const NotificationManager = require('../managers/NotificationManager');
 const TrayManager = require('../managers/TrayManager');
 
 // 导入工具类
-const { getErrorLogger, ErrorCategory } = require('../utils/ErrorLogger');
-const OrphanedDataCleaner = require('../utils/OrphanedDataCleaner');
+const { getErrorLogger } = require('../utils/ErrorLogger');
 
 // 导入配置
 const config = require('../config');

@@ -5,9 +5,7 @@
  * 提供统一的错误处理接口
  */
 
-const fs = require('fs').promises;
-const path = require('path');
-const { getErrorLogger, ErrorLevel, ErrorCategory } = require('../../utils/ErrorLogger');
+const { getErrorLogger, ErrorCategory } = require('../../utils/ErrorLogger');
 
 /**
  * 错误处理器类型枚举
@@ -258,7 +256,6 @@ class UnifiedErrorHandler {
    * @returns {Promise<void>}
    */
   async handleTranslationError(engine, error, details = {}) {
-    const timestamp = new Date();
     
     // 记录错误
     await this.logger.error(

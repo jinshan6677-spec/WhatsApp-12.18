@@ -1,8 +1,6 @@
 'use strict';
 
-const path = require('path');
 const fs = require('fs');
-
 /**
  * FingerprintDatabase - Real Browser Fingerprint Database
  * 

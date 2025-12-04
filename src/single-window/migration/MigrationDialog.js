@@ -265,7 +265,6 @@ class MigrationDialog {
     
     if (backupPath) {
       // Open the folder containing the backup file
-      const folderPath = path.dirname(backupPath);
       shell.showItemInFolder(backupPath);
     }
   }

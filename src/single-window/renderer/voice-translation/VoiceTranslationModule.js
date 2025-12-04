@@ -20,6 +20,7 @@ class VoiceTranslationModule {
 
         this.isInitialized = false;
         this.isTranslating = false;
+        this.maxQueueSize = options.maxQueueSize || this.config.maxQueueSize || 8;
         this.queue = [];
     }
 
@@ -65,6 +66,9 @@ class VoiceTranslationModule {
     async translateVoiceMessage(messageElement, options = {}) {
         if (!this.isAvailable()) {
             throw new Error('语音翻译功能不可用');
+        }
+        if (this.queue.length >= this.maxQueueSize) {
+            throw new Error('翻译队列已满，请稍后再试');
         }
         return new Promise((resolve, reject) => {
             this.queue.push({ messageElement, options, resolve, reject });
@@ -233,14 +237,26 @@ class VoiceTranslationModule {
         console.log('[VoiceTranslationModule] 配置已更新:', this.config);
     }
 
+    cancelPending() {
+        try {
+            const pending = this.queue.splice(0, this.queue.length);
+            pending.forEach(task => {
+                try { task.reject(new Error('语音翻译任务已取消')); } catch (_) {}
+            });
+        } catch (_) {}
+    }
+
     /**
      * 清理资源
      */
     cleanup() {
         try {
+            this.cancelPending();
             this.audioInterceptor.cleanup();
             this.audioDownloader.clearCache();
             this.playbackController.stopPlayback();
+            this.queue = [];
+            this.isTranslating = false;
             this.isInitialized = false;
             console.log('[VoiceTranslationModule] 清理完成');
         } catch (error) {
@@ -258,7 +274,8 @@ class VoiceTranslationModule {
             available: this.isAvailable(),
             translating: this.isTranslating,
             sttSupported: this.stt.isSupported(),
-            cacheSize: this.audioDownloader.getCacheSize()
+            cacheSize: this.audioDownloader.getCacheSize(),
+            queueSize: this.queue.length
         };
     }
 }

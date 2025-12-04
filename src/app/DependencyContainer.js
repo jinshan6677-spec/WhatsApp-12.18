@@ -5,7 +5,6 @@
  * 支持单例、工厂方法和条件注入
  */
 
-const { APP_INFO } = require('./constants');
 
 /**
  * 依赖注入容器类

@@ -316,13 +316,12 @@ function registerIPCHandlers(accountManager, viewManager, mainWindow, translatio
       })()
     `);
 
-    return {
-      success: true,
-      data: chatInfo
-    };
+  return {
+    success: true,
+    data: chatInfo
+  };
   });
 
-  console.log('[IPC] Single-window handlers registered');
   console.log('[IPC] Single-window handlers registered');
 }
 
