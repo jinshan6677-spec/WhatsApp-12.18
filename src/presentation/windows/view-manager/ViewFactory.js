@@ -109,6 +109,21 @@ class ViewFactory {
       }
     });
 
+    accountSession.webRequest.onBeforeRequest((details, callback) => {
+      const url = details.url || '';
+      if (url.startsWith('https://crashlogs.whatsapp.net/')) {
+        this.log('debug', `Blocked crashlog request: ${url}`);
+        callback({ cancel: true });
+        return;
+      }
+      if (url.includes('/wa_fls_upload_check') && url.includes('crashlogs.whatsapp.net')) {
+        this.log('debug', `Blocked crashlog upload check: ${url}`);
+        callback({ cancel: true });
+        return;
+      }
+      callback({});
+    });
+
     // IMPORTANT: Do NOT set both 'partition' and 'session' - they are mutually exclusive!
     // When both are set, 'session' is ignored and a new session is created from 'partition'.
 
@@ -178,11 +193,10 @@ class ViewFactory {
       });
     }
 
-    // Fingerprint injection
-    // Integrates the professional fingerprint system from src/infrastructure/fingerprint/
-    // **Validates: Requirements 24.1, 32.3**
+    // Fingerprint injection is handled in preload-view.js using --fp-config
+    // Avoid double injection to reduce risk of conflicts
     if (config.fingerprint) {
-      await this._injectFingerprint(view, accountId, config.fingerprint);
+      this.log('info', `Fingerprint injection delegated to preload for ${accountId}`);
     }
 
     // Stall recovery: if the page stays in loading state, clear SW/cache and reload
@@ -191,15 +205,22 @@ class ViewFactory {
       if (stallTimer) clearTimeout(stallTimer);
       stallTimer = setTimeout(async () => {
         try {
+          if (!view.webContents.isLoading()) {
+            return;
+          }
+          const currentUrl = view.webContents.getURL() || '';
+          if (!/web\.whatsapp\.com/i.test(currentUrl)) {
+            return;
+          }
           this.log('warn', `Stall detected, attempting recovery for ${accountId}`);
           await accountSession.clearCache();
           try {
-            await accountSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage', 'localstorage', 'indexdb'] });
+            await accountSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'], origin: 'https://web.whatsapp.com' });
           } catch (e) {
             this.log('warn', `Clear storage data failed for ${accountId}:`, e);
           }
           try {
-            await view.webContents.executeJavaScript(`(async()=>{try{const regs=await navigator.serviceWorker.getRegistrations();regs.forEach(r=>r.unregister());}catch(e){}})();`, true);
+            await view.webContents.executeJavaScript(`(async()=>{try{if(location&&/web\\.whatsapp\\.com$/i.test(location.hostname)){const regs=await navigator.serviceWorker.getRegistrations();regs.forEach(r=>r.unregister());}}catch(e){}})();`, true);
           } catch(e) {
             this.log('debug', `SW unregister script skipped for ${accountId}`);
           }
@@ -207,19 +228,10 @@ class ViewFactory {
         } catch (e) {
           this.log('error', `Stall recovery failed for ${accountId}:`, e);
         }
-      }, 30000);
+      }, 45000);
     };
 
     view.webContents.on('dom-ready', () => scheduleStallRecovery());
-    // Short-time watchdog: try unregister SW if still not finished within 8s
-    setTimeout(async () => {
-      if (stallTimer) {
-        try {
-          this.log('warn', `Early watchdog running for ${accountId}`);
-          await view.webContents.executeJavaScript(`(async()=>{try{const regs=await navigator.serviceWorker.getRegistrations();regs.forEach(r=>r.unregister());}catch(e){}})();`, true);
-        } catch(e) {}
-      }
-    }, 8000);
     view.webContents.on('did-finish-load', () => { if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } });
     view.webContents.on('did-fail-load', () => scheduleStallRecovery());
 
@@ -244,6 +256,34 @@ class ViewFactory {
         view.webContents.openDevTools({ mode: 'detach' });
       });
     }
+
+    // Reduce noisy ErrorUtils logs from WhatsApp Web
+    view.webContents.on('dom-ready', async () => {
+      try {
+        await view.webContents.executeJavaScript(
+          `(() => {
+            try {
+              const _origErr = console.error;
+              console.error = function(...args) {
+                const s = (args && args[0] && typeof args[0] === 'string') ? args[0] : '';
+                if (s.includes('ErrorUtils caught an error') || s.includes('Missing catch or finally after try') || s.includes('fburl.com/debugjs')) {
+                  return;
+                }
+                return _origErr.apply(this, args);
+              };
+
+              window.addEventListener('error', function(ev) {
+                const msg = ev && ev.message ? ev.message : '';
+                if (msg && msg.includes('Missing catch or finally after try')) {
+                  if (ev.preventDefault) ev.preventDefault();
+                }
+              }, true);
+            } catch (_) {}
+          })();`,
+          true
+        );
+      } catch (_) {}
+    });
 
     this.log('info', `BrowserView created for account ${accountId}`);
 
@@ -295,7 +335,7 @@ class ViewFactory {
 
       // Create FingerprintInjector instance
       const injector = new FingerprintInjector(fingerprintConfig, {
-        minify: true,
+        minify: false,
         includeWorkerInterceptor: false,
         includeIframeProtection: true,
         strictMode: true
@@ -385,7 +425,7 @@ class ViewFactory {
 
       // Create new injector with updated config
       const injector = new FingerprintInjector(fingerprintConfig, {
-        minify: true,
+        minify: false,
         includeWorkerInterceptor: false,
         includeIframeProtection: true,
         strictMode: true

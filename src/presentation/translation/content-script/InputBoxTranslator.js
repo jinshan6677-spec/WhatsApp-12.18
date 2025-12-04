@@ -35,7 +35,7 @@ class InputBoxTranslator {
       document.querySelector('div[contenteditable="true"][role="textbox"]');
 
     if (!inputBox) {
-      if (retryCount < 5) {
+      if (retryCount < 10) {
         setTimeout(() => this.initInputBoxTranslation(retryCount + 1), 1000);
       }
       return;

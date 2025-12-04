@@ -12,6 +12,7 @@
  */
 
 const { app } = require('electron');
+try { if (!app.isPackaged) { process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = 'true'; } } catch (_) {}
 
 // 导入新的应用引导器
 const { initializeApp } = require('./app/bootstrap');

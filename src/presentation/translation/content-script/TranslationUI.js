@@ -264,7 +264,31 @@ class TranslationUI {
     }
 
     if (!footer) {
-      console.warn('[Translation] Footer not found for realtime preview');
+      const preview = document.createElement('div');
+      preview.className = 'wa-realtime-preview';
+      preview.style.cssText = `
+        position: fixed;
+        left: 20px;
+        right: 20px;
+        bottom: 80px;
+        z-index: 10000000;
+        display: none;
+      `;
+      preview.innerHTML = `
+        <div class="translation-header">
+          <span class="translation-icon">⚡</span>
+          <span class="translation-lang">实时翻译预览</span>
+        </div>
+        <div class="translation-content-wrapper">
+          <div class="translation-panel original-panel" style="display: none;">
+              <div class="translation-text original-text"></div>
+          </div>
+          <div class="translation-panel result-panel">
+              <div class="translation-text result-text"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(preview);
       return;
     }
 

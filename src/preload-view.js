@@ -67,6 +67,65 @@ try {
 
       await webFrame.executeJavaScript(injectionScript, true);
       console.log('[Preload-View] ✓ Fingerprint injected at preload');
+
+      // Inject runtime patches into the main world early
+      const runtimePatches = `(() => {
+        try {
+          // Suppress noisy ErrorUtils logs
+          const _origErr = console.error;
+          console.error = function(...args) {
+            const s = (args && args[0] && typeof args[0] === 'string') ? args[0] : '';
+            if (s.includes('ErrorUtils caught an error') || s.includes('Missing catch or finally after try') || s.includes('fburl.com/debugjs')) {
+              return;
+            }
+            return _origErr.apply(this, args);
+          };
+
+          // Worker error suppression wrapper (attach early)
+          if (typeof Worker !== 'undefined') {
+            const OriginalWorker = Worker;
+            // Avoid double-wrapping
+            if (!OriginalWorker.__wrapped__) {
+              const WrappedWorker = function(scriptURL, options) {
+                const w = new OriginalWorker(scriptURL, options);
+                try {
+                  w.addEventListener('error', function(ev) {
+                    const msg = ev && ev.message ? ev.message : '';
+                    if (msg && msg.includes('Missing catch or finally after try')) {
+                      if (ev.preventDefault) ev.preventDefault();
+                    }
+                  }, true);
+                } catch (_) {}
+                return w;
+              };
+              Object.setPrototypeOf(WrappedWorker, OriginalWorker);
+              WrappedWorker.prototype = OriginalWorker.prototype;
+              Object.defineProperty(WrappedWorker, '__wrapped__', { value: true });
+              try { window.Worker = WrappedWorker; } catch (_) {}
+            }
+          }
+
+          // Canvas getContext default willReadFrequently for heavy readback
+          if (typeof HTMLCanvasElement !== 'undefined') {
+            const proto = HTMLCanvasElement.prototype;
+            const origGetContext = proto.getContext;
+            if (origGetContext && !origGetContext.__patched__) {
+              proto.getContext = function(type, options) {
+                if (type === '2d') {
+                  if (!options || typeof options !== 'object') {
+                    options = { willReadFrequently: true };
+                  } else if (options.willReadFrequently === undefined) {
+                    options = { ...options, willReadFrequently: true };
+                  }
+                }
+                return origGetContext.call(this, type, options);
+              };
+              Object.defineProperty(proto.getContext, '__patched__', { value: true });
+            }
+          }
+        } catch (_) {}
+      })();`;
+      await webFrame.executeJavaScript(runtimePatches, true);
     } catch (e) {
       console.error('[Preload-View] ✗ Fingerprint preload injection failed:', e);
       console.error('[Preload-View] Error stack:', e.stack);

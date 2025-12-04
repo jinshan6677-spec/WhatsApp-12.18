@@ -25,7 +25,6 @@
 'use strict';
 
 const { NativeWrapper } = require('./core/native-wrapper');
-const { PrototypeGuard } = require('./core/prototype-guard');
 const NoiseEngine = require('../../../domain/fingerprint/NoiseEngine');
 
 /**
@@ -115,6 +114,55 @@ class CanvasSpoof {
     } else {
       CanvasSpoof._noiseEngine = null;
     }
+
+    try {
+      if (typeof HTMLCanvasElement !== 'undefined') {
+        const proto = HTMLCanvasElement.prototype;
+        const originalGetContext = proto.getContext;
+        const wrappedGetContext = NativeWrapper.wrap(
+          originalGetContext,
+          function(original, args, thisArg) {
+            try {
+              const type = args[0];
+              let options = args[1];
+              if (type === '2d') {
+                let opts = options && typeof options === 'object' ? options : {};
+                if (opts.willReadFrequently !== true) {
+                  opts = { ...opts, willReadFrequently: true };
+                }
+                return original.call(thisArg, type, opts);
+              }
+            } catch (_) {}
+            return original.apply(thisArg, args);
+          },
+          { name: 'getContext', length: 1 }
+        );
+        NativeWrapper.protectPrototype(proto, 'getContext', wrappedGetContext);
+      }
+      if (typeof OffscreenCanvas !== 'undefined') {
+        const ocProto = OffscreenCanvas.prototype;
+        const ocOriginalGetContext = ocProto.getContext;
+        const ocWrappedGetContext = NativeWrapper.wrap(
+          ocOriginalGetContext,
+          function(original, args, thisArg) {
+            try {
+              const type = args[0];
+              let options = args[1];
+              if (type === '2d') {
+                let opts = options && typeof options === 'object' ? options : {};
+                if (opts.willReadFrequently !== true) {
+                  opts = { ...opts, willReadFrequently: true };
+                }
+                return original.call(thisArg, type, opts);
+              }
+            } catch (_) {}
+            return original.apply(thisArg, args);
+          },
+          { name: 'getContext', length: 1 }
+        );
+        NativeWrapper.protectPrototype(ocProto, 'getContext', ocWrappedGetContext);
+      }
+    } catch (_) {}
 
     const results = {
       success: true,
