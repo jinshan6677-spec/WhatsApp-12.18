@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>配置迁移</title>
+  <link rel="stylesheet" href="migrationDialog.css">
+</head>
+<body>
+  <div class="dialog-container">
+    <!-- Migration Detection Screen -->
+    <div id="detection-screen" class="screen active">
+      <div class="dialog-header">
+        <div class="header-icon">🔄</div>
+        <h1>检测到配置迁移</h1>
+      </div>
+
+      <div class="dialog-content">
+        <div class="info-box">
+          <div class="info-icon">ℹ️</div>
+          <div class="info-content">
+            <p>我们检测到您正在使用旧版本的多窗口 WhatsApp 桌面版。</p>
+            <p>新版本使用单窗口和侧边栏来更高效地管理您的所有账号。</p>
+          </div>
+        </div>
+
+        <div class="migration-details">
+          <h3>将迁移以下内容：</h3>
+          <ul>
+            <li>✓ 所有账号配置</li>
+            <li>✓ 账号名称和备注</li>
+            <li>✓ 翻译偏好设置</li>
+            <li>✓ 登录会话（无需重新扫描二维码）</li>
+          </ul>
+        </div>
+
+        <div class="info-box warning">
+          <div class="info-icon">⚠️</div>
+          <div class="info-content">
+            <p><strong>重要提示：</strong>迁移前将备份您的旧配置，如有需要可以恢复。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-migration-btn">取消</button>
+        <button type="button" class="btn btn-primary" id="start-migration-btn">
+          <span class="btn-text">开始迁移</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Migration Progress Screen -->
+    <div id="progress-screen" class="screen">
+      <div class="dialog-header">
+        <div class="header-icon spinning">⚙️</div>
+        <h1>正在迁移配置</h1>
+      </div>
+
+      <div class="dialog-content">
+        <div class="progress-container">
+          <div class="progress-bar-wrapper">
+            <div class="progress-bar" id="progress-bar">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progress-text">0%</div>
+          </div>
+
+          <div class="progress-status" id="progress-status">
+            <div class="status-item">
+              <span class="status-icon">⏳</span>
+              <span class="status-text">准备迁移...</span>
+            </div>
+          </div>
+
+          <div class="migration-log" id="migration-log">
+            <!-- Log entries will be added here -->
+          </div>
+        </div>
+
+        <div class="info-box info">
+          <div class="info-icon">💡</div>
+          <div class="info-content">
+            <p>正在迁移您的配置，请稍候。这可能需要几分钟时间。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-progress-btn" disabled>取消</button>
+      </div>
+    </div>
+
+    <!-- Migration Results Screen -->
+    <div id="results-screen" class="screen">
+      <div class="dialog-header">
+        <div class="header-icon" id="results-icon">✅</div>
+        <h1 id="results-title">迁移完成</h1>
+      </div>
+
+      <div class="dialog-content">
+        <div class="results-summary" id="results-summary">
+          <!-- Summary will be populated by JavaScript -->
+        </div>
+
+        <div class="results-details" id="results-details">
+          <h3>已迁移的账号：</h3>
+          <div class="account-results-list" id="account-results-list">
+            <!-- Account results will be added here -->
+          </div>
+        </div>
+
+        <div id="results-errors" class="results-errors" style="display: none;">
+          <h3>⚠️ 遇到的问题：</h3>
+          <ul id="error-list"></ul>
+        </div>
+
+        <div id="results-warnings" class="results-warnings" style="display: none;">
+          <h3>ℹ️ 警告：</h3>
+          <ul id="warning-list"></ul>
+        </div>
+
+        <div class="info-box success" id="success-info">
+          <div class="info-icon">🎉</div>
+          <div class="info-content">
+            <p>您的配置已成功迁移！现在可以使用新的单窗口界面了。</p>
+            <p>旧配置已备份到：<code id="backup-path"></code></p>
+          </div>
+        </div>
+
+        <div class="info-box error" id="error-info" style="display: none;">
+          <div class="info-icon">❌</div>
+          <div class="info-content">
+            <p>迁移过程中遇到错误。请检查上述详细信息并重试，或联系技术支持。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-footer">
+        <button type="button" class="btn btn-secondary" id="view-backup-btn">查看备份</button>
+        <button type="button" class="btn btn-primary" id="continue-btn">
+          <span class="btn-text">继续使用应用</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="migrationDialog.js"></script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+/**
+ * Recovery UI Styles
+ */
+
+/* Recovery Dialog Overlay */
+.recovery-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: recovery-fade-in 0.2s ease-out;
+}
+
+@keyframes recovery-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Recovery Dialog */
+.recovery-dialog {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: recovery-slide-up 0.3s ease-out;
+}
+
+@keyframes recovery-slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Dialog Header */
+.recovery-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.recovery-dialog-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.recovery-dialog-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.recovery-dialog-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+/* Dialog Body */
+.recovery-dialog-body {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Account Info */
+.recovery-account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.recovery-account-info strong {
+  font-size: 16px;
+  color: #333;
+}
+
+.recovery-account-id {
+  font-size: 12px;
+  color: #666;
+  font-family: monospace;
+}
+
+/* Recovery Options */
+.recovery-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recovery-option {
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.recovery-option:hover {
+  border-color: #25d366;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.1);
+}
+
+.recovery-option-warning {
+  border-color: #ff9800;
+}
+
+.recovery-option-warning:hover {
+  border-color: #f57c00;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
+}
+
+.recovery-option h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.recovery-option p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* Recovery Buttons */
+.recovery-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  width: 100%;
+}
+
+.recovery-btn:hover {
+  transform: translateY(-1px);
+}
+
+.recovery-btn:active {
+  transform: translateY(0);
+}
+
+.recovery-reconnect {
+  background-color: #25d366;
+  color: #fff;
+}
+
+.recovery-reconnect:hover {
+  background-color: #20bd5a;
+}
+
+.recovery-recover {
+  background-color: #2196f3;
+  color: #fff;
+}
+
+.recovery-recover:hover {
+  background-color: #1976d2;
+}
+
+.recovery-reset {
+  background-color: #ff9800;
+  color: #fff;
+}
+
+.recovery-reset:hover {
+  background-color: #f57c00;
+}
+
+/* Recovery Status */
+.recovery-status {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+}
+
+.recovery-status-message {
+  font-size: 14px;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.recovery-status-info {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.recovery-status-success {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.recovery-status-error {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+.recovery-status-progress {
+  height: 4px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.recovery-progress-bar {
+  height: 100%;
+  background-color: #25d366;
+  animation: recovery-progress 1.5s ease-in-out infinite;
+}
+
+@keyframes recovery-progress {
+  0% {
+    width: 0%;
+    margin-left: 0%;
+  }
+  50% {
+    width: 50%;
+    margin-left: 25%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
+}
+
+/* Recovery Button in Account Item */
+.account-recovery-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  opacity: 0.7;
+}
+
+.account-recovery-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  opacity: 1;
+}
+
+/* Recovery Status Indicator */
+.recovery-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #f57c00;
+  margin-left: 8px;
+  animation: recovery-pulse 2s ease-in-out infinite;
+}
+
+@keyframes recovery-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Recovery Notification */
+.recovery-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  min-width: 300px;
+  max-width: 400px;
+  z-index: 10001;
+  animation: recovery-notification-slide-in 0.3s ease-out;
+}
+
+@keyframes recovery-notification-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.recovery-notification-fade-out {
+  animation: recovery-notification-fade-out 0.3s ease-out forwards;
+}
+
+@keyframes recovery-notification-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.recovery-notification-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.recovery-notification-message {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .recovery-dialog {
+    background-color: #2a2a2a;
+  }
+
+  .recovery-dialog-header {
+    border-bottom-color: #444;
+  }
+
+  .recovery-dialog-header h2 {
+    color: #fff;
+  }
+
+  .recovery-dialog-close {
+    color: #aaa;
+  }
+
+  .recovery-dialog-close:hover {
+    background-color: #3a3a3a;
+    color: #fff;
+  }
+
+  .recovery-account-info {
+    background-color: #333;
+  }
+
+  .recovery-account-info strong {
+    color: #fff;
+  }
+
+  .recovery-account-id {
+    color: #aaa;
+  }
+
+  .recovery-option {
+    border-color: #444;
+  }
+
+  .recovery-option:hover {
+    border-color: #25d366;
+  }
+
+  .recovery-option-warning {
+    border-color: #ff9800;
+  }
+
+  .recovery-option h3 {
+    color: #fff;
+  }
+
+  .recovery-option p {
+    color: #aaa;
+  }
+
+  .recovery-status {
+    background-color: #333;
+  }
+
+  .recovery-status-info {
+    background-color: #1a237e;
+    color: #90caf9;
+  }
+
+  .recovery-status-success {
+    background-color: #1b5e20;
+    color: #a5d6a7;
+  }
+
+  .recovery-status-error {
+    background-color: #b71c1c;
+    color: #ef9a9a;
+  }
+
+  .recovery-notification {
+    background-color: #2a2a2a;
+  }
+
+  .recovery-notification-title {
+    color: #fff;
+  }
+
+  .recovery-notification-message {
+    color: #aaa;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .recovery-dialog {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .recovery-dialog-header {
+    padding: 16px;
+  }
+
+  .recovery-dialog-body {
+    padding: 16px;
+  }
+
+  .recovery-option {
+    padding: 12px;
+  }
+
+  .recovery-notification {
+    right: 10px;
+    left: 10px;
+    min-width: auto;
+  }
+}

@@ -1,0 +1,64 @@
+WhatsApp Desktop Translation - 运行说明
+==========================================
+
+✓ 应用已成功打包！
+
+运行方式：
+---------
+
+方法 1：双击运行
+  dist\win-unpacked\WhatsApp Desktop Translation.exe
+
+方法 2：使用启动脚本
+  双击 run-app.bat
+
+方法 3：命令行运行
+  npm start  （开发模式）
+  npm run pack  （重新打包）
+  npm run build:win  （创建安装程序）
+
+应用位置：
+---------
+打包后的应用：dist\win-unpacked\
+安装程序（如果已创建）：dist\*.exe
+
+功能说明：
+---------
+✓ WhatsApp Web 桌面版
+✓ 实时消息翻译
+✓ 输入框翻译
+✓ 支持多种翻译引擎：
+  - Google 翻译（免费）
+  - GPT-4
+  - Google Gemini
+  - DeepSeek
+
+配置位置：
+---------
+用户配置保存在：
+%APPDATA%\whatsapp-desktop-translation\
+
+常见问题：
+---------
+
+Q: 应用打不开？
+A: 检查杀毒软件是否阻止，尝试以管理员身份运行
+
+Q: 翻译不工作？
+A: 检查网络连接和 API 密钥配置
+
+Q: 如何配置翻译？
+A: 启动应用后，在设置中配置翻译引擎和 API 密钥
+
+Q: 如何创建安装程序？
+A: 运行命令：npm run build:win
+
+更多信息：
+---------
+详细文档：WINDOWS_BUILD_NOTES.md
+构建指南：BUILD_GUIDE.md
+快速参考：QUICK_BUILD_REFERENCE.md
+
+技术支持：
+---------
+GitHub: https://github.com/your-org/whatsapp-desktop-translation

@@ -1,0 +1,32 @@
+{
+  "accounts": {
+    "default": {
+      "global": {
+        "autoTranslate": true,
+        "engine": "google",
+        "sourceLang": "auto",
+        "targetLang": "zh-CN",
+        "groupTranslation": true
+      },
+      "inputBox": {
+        "enabled": true,
+        "style": "通用"
+      },
+      "advanced": {
+        "friendIndependent": false,
+        "blockChinese": false,
+        "realtime": false,
+        "reverseTranslation": false,
+        "voiceTranslation": false,
+        "imageTranslation": false
+      },
+      "friendConfigs": {}
+    }
+  },
+  "engines": {
+    "google": {
+      "type": "google",
+      "enabled": true
+    }
+  }
+}

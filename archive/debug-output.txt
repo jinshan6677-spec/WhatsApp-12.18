@@ -1,0 +1,5 @@
+LOG: Requiring CacheManager...
+LOG: Mocking electron require
+LOG: CacheManager required.
+LOG: app.getPath called with userData
+LOG: Cache Dir: E:\WhatsApps\WhatsApp 11.19\temp_test_userdata\translation-cache

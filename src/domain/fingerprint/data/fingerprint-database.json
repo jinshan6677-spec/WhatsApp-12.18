@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2024-12-01",
+  "description": "Real browser fingerprint database for professional fingerprint spoofing. This file contains additional fingerprint templates that supplement the built-in templates in FingerprintDatabase.js. The built-in templates already contain 100+ configurations.",
+  "sources": ["public-test-datasets", "synthetic-combinations"],
+  "note": "The FingerprintDatabase class generates 100+ templates programmatically. This JSON file is for additional custom templates or imported data.",
+  "fingerprints": {
+    "windows": {
+      "chrome": [],
+      "firefox": [],
+      "edge": []
+    },
+    "macos": {
+      "chrome": [],
+      "firefox": [],
+      "safari": []
+    },
+    "linux": {
+      "chrome": [],
+      "firefox": []
+    }
+  }
+}

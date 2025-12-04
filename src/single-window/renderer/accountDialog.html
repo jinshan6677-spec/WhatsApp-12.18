@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>账号配置</title>
+  <link rel="stylesheet" href="accountDialog.css">
+</head>
+<body>
+  <div class="dialog-container">
+    <div class="dialog-header">
+      <h1 id="dialog-title">添加账号</h1>
+      <button class="close-btn" id="close-btn" aria-label="关闭对话框">×</button>
+    </div>
+
+    <form id="account-form" class="dialog-content">
+      <!-- Basic Information Section -->
+      <section class="form-section">
+        <h2 class="section-title">基本信息</h2>
+        
+        <div class="form-group">
+          <label for="account-name" class="required">账号名称</label>
+          <input 
+            type="text" 
+            id="account-name" 
+            name="name" 
+            class="form-input" 
+            placeholder="例如：个人 WhatsApp"
+            required
+            maxlength="100"
+            autocomplete="off"
+          >
+          <span class="field-error" id="name-error"></span>
+          <span class="field-hint">用于识别此账号的友好名称</span>
+        </div>
+
+        <div class="form-group">
+          <label for="phoneNumber">WhatsApp 号码（可选）</label>
+          <input 
+            type="text" 
+            id="phoneNumber" 
+            name="phoneNumber" 
+            class="form-input" 
+            placeholder="例如：66803947997"
+            maxlength="32"
+            autocomplete="off"
+          >
+          <span class="field-error" id="phoneNumber-error"></span>
+          <span class="field-hint">在账号列表中展示的号码，仅用于本地标识</span>
+        </div>
+
+        <div class="form-group">
+          <label for="account-note">备注（可选）</label>
+          <textarea 
+            id="account-note" 
+            name="note" 
+            class="form-input" 
+            placeholder="例如：客服工作账号"
+            rows="3"
+            maxlength="500"
+          ></textarea>
+          <span class="field-hint">关于此账号的附加说明</span>
+        </div>
+      </section>
+
+      <!-- Additional Settings Section -->
+      <section class="form-section">
+        <h2 class="section-title">其他设置</h2>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              id="auto-start" 
+              name="autoStart"
+              class="form-checkbox"
+            >
+            <span>应用启动时自动启动此账号</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Form Errors -->
+      <div id="form-errors" class="form-errors" style="display: none;">
+        <div class="error-icon">⚠️</div>
+        <div class="error-content">
+          <h3>请修复以下错误：</h3>
+          <ul id="error-list"></ul>
+        </div>
+      </div>
+    </form>
+
+    <div class="dialog-footer">
+      <button type="button" class="btn btn-secondary" id="cancel-btn">取消</button>
+      <button type="submit" form="account-form" class="btn btn-primary" id="save-btn">
+        <span class="btn-text">保存账号</span>
+        <span class="btn-spinner" style="display: none;">…</span>
+      </button>
+    </div>
+  </div>
+
+  <script src="accountDialog.js"></script>
+</body>
+</html>

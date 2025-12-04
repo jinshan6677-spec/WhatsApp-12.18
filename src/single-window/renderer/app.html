@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 放宽图片加载策略，允许从 HTTPS 加载头像 -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>WhatsApp 桌面版 - 多账号</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="errorDisplay.css">
+  <link rel="stylesheet" href="environmentSettingsPanel.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Sidebar for account management -->
+    <div id="sidebar">
+      <div class="sidebar-header">
+        <div class="header-top">
+          <h2>账号列表</h2>
+          <button id="add-account" class="btn-icon" title="添加新账号">
+            <span class="icon">+</span>
+          </button>
+        </div>
+        <div class="search-container">
+          <input type="text" id="account-search" placeholder="搜索账号..." autocomplete="off">
+          <span class="search-icon">🔍</span>
+        </div>
+      </div>
+
+      <div class="account-list" id="account-list">
+        <!-- Empty state -->
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">📱</div>
+          <h3>暂无账号</h3>
+          <p>点击上方“添加”按钮创建您的第一个 WhatsApp 账号</p>
+        </div>
+
+        <!-- Account items will be dynamically inserted here -->
+      </div>
+    </div>
+
+    <!-- Resizable handle -->
+    <div id="resize-handle" class="resize-handle"></div>
+
+    <!-- View container for BrowserViews -->
+    <div id="view-container">
+      <!-- Empty state for view container -->
+      <div class="view-empty-state" id="view-empty-state">
+        <div class="view-empty-icon">💬</div>
+        <h2>欢迎使用 WhatsApp 桌面版</h2>
+        <p>从侧边栏选择一个账号开始使用，或添加新账号</p>
+      </div>
+
+      <!-- BrowserViews will be attached here by the main process -->
+    </div>
+
+    <!-- Settings Panel (Translation & Environment) -->
+    <aside id="translate-panel" class="translate-panel" data-state="expanded">
+      <!-- Panel Bodies -->
+      <div class="translate-panel-body" id="translate-panel-body">
+        <div id="translate-panel-placeholder" class="translate-panel-placeholder">
+          选择账号后将显示对应翻译设置
+        </div>
+        <div id="translate-settings-host"></div>
+      </div>
+
+      <!-- Environment Settings Panel Body -->
+      <div class="translate-panel-body" id="environment-panel-body" style="display: none;">
+        <div class="env-panel-header">
+          <h2>环境设置</h2>
+        </div>
+        <div id="environment-settings-host"></div>
+      </div>
+
+      <!-- Right: Vertical Menu -->
+      <div class="translate-panel-menu">
+        <button class="panel-menu-btn active" data-panel="translate" title="翻译设置">
+          <span class="menu-icon">🌐</span>
+          <span class="menu-label">翻译设置</span>
+        </button>
+
+        <button class="panel-menu-btn" data-panel="environment" title="环境设置">
+          <span class="menu-icon">🛡️</span>
+          <span class="menu-label">环境设置</span>
+        </button>
+
+        <button class="panel-menu-btn panel-collapse-btn" data-target="collapsed" title="收起">
+          <span class="menu-icon">︽</span>
+          <span class="menu-label">收起</span>
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <script src="errorDisplay.js"></script>
+  <script src="app.js"></script>
+  <script src="sidebar.js"></script>
+  <script src="uiEnhancements.js"></script>
+  <script src="accountProfileOverlay.js"></script>
+  <script src="accountStatusOverlay.js"></script>
+  <script src="translateSettingsPanel.js"></script>
+
+  <script src="translatePanelLayout.js"></script>
+  <script src="environmentSettingsPanel.js"></script>
+</body>
+
+</html>

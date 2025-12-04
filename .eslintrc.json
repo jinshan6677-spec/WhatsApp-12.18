@@ -1,0 +1,57 @@
+{
+  "root": true,
+  "env": {
+    "es2021": true,
+    "node": true,
+    "browser": true
+  },
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "dist/",
+    "resources/",
+    "src/presentation/translation/content-script/**",
+    "src/single-window/renderer/**",
+    "src/**/__tests__/**",
+    "src/**/*.test.js",
+    "src/**/*.spec.js",
+    "src/**/*.property.test.js"
+  ],
+  "rules": {
+    "no-unused-vars": ["warn", { "args": "none" }],
+    "no-undef": "error",
+    "no-control-regex": "off",
+    "no-useless-escape": "off",
+    "no-empty": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/translation/**/*.js", "src/presentation/**/*.js"],
+      "env": { "browser": true }
+    },
+    {
+      "files": ["src/translation/managers/ConfigManager.js"],
+      "rules": {
+        "no-dupe-class-members": "off"
+      }
+    },
+    {
+      "files": ["src/managers/InstanceManager.js"],
+      "globals": { "app": "readonly" }
+    },
+    {
+      "files": ["src/single-window/recoveryHandlers.js"],
+      "globals": { "getErrorHandler": "readonly" }
+    },
+    {
+      "files": ["**/*.test.js", "**/*.spec.js"],
+      "env": {
+        "jest": true
+      }
+    }
+  ]
+}

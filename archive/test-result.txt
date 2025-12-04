@@ -1,0 +1,9 @@
+LOG: Starting Cache Cleanup Test...
+LOG: Cache directory: E:\WhatsApps\WhatsApp 11.19\temp_test_userdata\translation-cache
+LOG: Created fresh cache entry
+LOG: Created expired cache entry (mtime modified)
+LOG: Both files exist before cleanup
+LOG: Running cleanup...
+LOG: [CacheManager] Cleaned up 1 expired cache entries
+LOG: SUCCESS: Fresh file remains, expired file deleted.
+LOG: Test environment cleaned up

@@ -1,0 +1,231 @@
+{
+  "name": "whatsapp-desktop-translation",
+  "version": "1.0.0",
+  "description": "WhatsApp Desktop application with comprehensive translation support",
+  "main": "src/main-refactored.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --inspect",
+    "prebuild": "node scripts/prepare-build.js",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder -mwl",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps",
+    "version": "node scripts/check-electron-version.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:setup": "node scripts/test-setup.js",
+    "test:session": "node scripts/check-session.js",
+    "test:reconnect": "node scripts/test-reconnect.js",
+    "test:clean": "node scripts/clean-session.js",
+    "test:build": "node scripts/test-build.js",
+    "test:isolation": "electron scripts/test-session-isolation.js",
+    "verify:isolation": "node scripts/verify-session-isolation.js",
+    "migrate": "node scripts/migrate-to-multi-instance.js",
+    "lint": "eslint src/app src/config src/core src/domain src/environment src/ipc src/managers src/models src/shared src/single-window src/translation src/ui src/utils --max-warnings=50",
+    "lint:fix": "eslint src/**/*.js --fix"
+  },
+  "keywords": [
+    "whatsapp",
+    "electron",
+    "desktop",
+    "translation",
+    "ai",
+    "google-translate",
+    "gpt4",
+    "gemini",
+    "deepseek"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/whatsapp-desktop-translation.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/whatsapp-desktop-translation/issues"
+  },
+  "homepage": "https://github.com/your-org/whatsapp-desktop-translation#readme",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "electron-store": "^8.1.0",
+    "form-data": "^4.0.5",
+    "https-proxy-agent": "^7.0.6",
+    "lru-cache": "^10.0.0",
+    "node-fetch": "^2.7.0",
+    "node-machine-id": "^1.1.12",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "electron": "^39.1.1",
+    "electron-builder": "^26.0.12",
+    "eslint": "^8.56.0",
+    "fast-check": "^4.3.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.2.0"
+  },
+  "build": {
+    "appId": "com.whatsapp.desktop.translation",
+    "productName": "WhatsApp Desktop Translation",
+    "copyright": "Copyright © 2024 ${author}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "src/**/*",
+      "resources/**/*",
+      "!src/**/*.test.js",
+      "!src/**/__tests__/**",
+      "!**/*.map",
+      "!src/translation/examples/**",
+      "!**/*.md",
+      "!resources/BUILD_NOTES.md"
+    ],
+    "asarUnpack": [],
+    "extraResources": [
+      {
+        "from": "docs",
+        "to": "docs",
+        "filter": [
+          "*.md"
+        ]
+      },
+      {
+        "from": "profiles",
+        "to": "profiles",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WhatsApp Desktop",
+      "license": "LICENSE",
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico",
+      "installerHeaderIcon": "resources/icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.icns",
+      "category": "public.app-category.social-networking",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "resources/entitlements.mac.plist",
+      "entitlementsInherit": "resources/entitlements.mac.plist"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "title": "${productName} ${version}",
+      "icon": "resources/icon.icns"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icons",
+      "category": "Network;InstantMessaging",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "synopsis": "WhatsApp Desktop with Translation",
+      "description": "WhatsApp Desktop application with comprehensive translation support including Google Translate, GPT-4, Gemini, and DeepSeek."
+    },
+    "appImage": {
+      "license": "LICENSE"
+    },
+    "deb": {
+      "depends": [
+        "gconf2",
+        "gconf-service",
+        "libnotify4",
+        "libappindicator1",
+        "libxtst6",
+        "libnss3"
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "your-org",
+      "repo": "whatsapp-desktop-translation"
+    },
+    "afterPack": "./scripts/afterPack.js",
+    "npmRebuild": true
+  }
+}
