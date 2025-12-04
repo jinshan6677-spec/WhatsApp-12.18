@@ -193,6 +193,7 @@ class FingerprintInjector {
 
     try {
       const configJSON = JSON.stringify(this._config);
+      const allowNavigatorProxy = options.allowNavigatorProxy === true;
       const baseScript = this.getInjectionScript({
         ...options,
         minify: true // Preload scripts should be minified for performance
@@ -215,6 +216,45 @@ const { contextBridge, webFrame } = require('electron');
 // Fingerprint configuration
 const __fingerprintConfig__ = ${configJSON};
 
+function forceNavigatorOverrides(cfg) {
+  try {
+    const overrides = {
+      userAgent: cfg.userAgent,
+      language: (cfg.navigator && cfg.navigator.language) || 'en-US',
+      languages: (cfg.navigator && cfg.navigator.languages) || ['en-US','en'],
+      hardwareConcurrency: (cfg.hardware && cfg.hardware.cpuCores) || 8,
+      deviceMemory: (cfg.hardware && cfg.hardware.deviceMemory) || 8,
+      platform: (cfg.os && cfg.os.platform) || 'Win32',
+      webdriver: false
+    };
+    const proto = (typeof Navigator !== 'undefined') ? Navigator.prototype : null;
+    const createGetter = (key, val) => { return function() { return val; } };
+    if (proto) {
+      for (const [k,v] of Object.entries(overrides)) {
+        try { Object.defineProperty(proto, k, { get: createGetter(k,v), configurable: true, enumerable: true }); } catch (_) {}
+      }
+    }
+    for (const [k,v] of Object.entries(overrides)) {
+      try { Object.defineProperty(navigator, k, { get: createGetter(k,v), configurable: true, enumerable: true }); } catch (_) {}
+    }
+    if (${allowNavigatorProxy ? 'true' : 'false'}) {
+      try {
+        const proxied = new Proxy(navigator, { get(target, prop, receiver) {
+          if (prop === 'userAgent') return overrides.userAgent;
+          if (prop === 'language') return overrides.language;
+          if (prop === 'languages') return Object.freeze([].concat(overrides.languages));
+          if (prop === 'hardwareConcurrency') return overrides.hardwareConcurrency;
+          if (prop === 'deviceMemory') return overrides.deviceMemory;
+          if (prop === 'platform') return overrides.platform;
+          if (prop === 'webdriver') return false;
+          return Reflect.get(target, prop, receiver);
+        }});
+        Object.defineProperty(window, 'navigator', { get: function(){ return proxied; }, configurable: true, enumerable: true });
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
+
 /**
  * Inject fingerprint spoofing into the main world
  */
@@ -222,6 +262,17 @@ function injectFingerprint() {
   const injectionScript = ${JSON.stringify(baseScript)};
   
   try {
+    forceNavigatorOverrides(__fingerprintConfig__);
+    try {
+      if (__fingerprintConfig__ && __fingerprintConfig__.hardware && typeof __fingerprintConfig__.hardware.devicePixelRatio === 'number' && __fingerprintConfig__.hardware.devicePixelRatio > 0 && typeof webFrame !== 'undefined' && typeof webFrame.setZoomFactor === 'function') {
+        const currentDPR = (typeof window !== 'undefined' && typeof window.devicePixelRatio === 'number' && window.devicePixelRatio > 0) ? window.devicePixelRatio : 1;
+        const targetDPR = __fingerprintConfig__.hardware.devicePixelRatio;
+        const targetZoom = targetDPR / currentDPR;
+        if (targetZoom > 0 && targetZoom !== 1) {
+          webFrame.setZoomFactor(targetZoom);
+        }
+      }
+    } catch (_) {}
     // Execute in main world context
     webFrame.executeJavaScript(injectionScript, true);
     return { success: true };
@@ -336,6 +387,9 @@ module.exports = {
       const iframeWindow = iframe.contentWindow;
       if (!iframeWindow) return false;
       
+      // Check if already injected
+      if (iframeWindow.__fingerprintInjected__) return true;
+
       // Create and execute script in iframe context
       const script = iframeWindow.document.createElement('script');
       script.textContent = __injectionScript__;
@@ -344,13 +398,91 @@ module.exports = {
       const target = iframeWindow.document.head || iframeWindow.document.body || iframeWindow.document.documentElement;
       if (target) {
         target.insertBefore(script, target.firstChild);
+        iframeWindow.__fingerprintInjected__ = true;
         return true;
       }
     } catch (error) {
-      console.warn('[FingerprintInjector] Failed to inject into iframe:', error.message);
+      // console.warn('[FingerprintInjector] Failed to inject into iframe:', error.message);
     }
     return false;
   }
+
+  // 1. Intercept document.createElement
+  // This helps catch iframes created via script before they are inserted
+  try {
+    const originalCreateElement = document.createElement;
+    document.createElement = function(tagName, options) {
+      const element = originalCreateElement.call(document, tagName, options);
+      if (tagName && String(tagName).toLowerCase() === 'iframe') {
+        // Try to inject immediately if possible, or setup listeners
+        try {
+          element.addEventListener('load', function() { injectIntoIframe(element); });
+        } catch (e) {}
+      }
+      return element;
+    };
+  } catch (e) {}
+
+  // 2. Intercept Node.prototype methods to catch synchronous insertion
+  try {
+    const originalAppendChild = Node.prototype.appendChild;
+    Node.prototype.appendChild = function(child) {
+      const result = originalAppendChild.call(this, child);
+      if (child && child.nodeName === 'IFRAME') {
+        injectIntoIframe(child);
+      }
+      return result;
+    };
+
+    const originalInsertBefore = Node.prototype.insertBefore;
+    Node.prototype.insertBefore = function(newNode, referenceNode) {
+      const result = originalInsertBefore.call(this, newNode, referenceNode);
+      if (newNode && newNode.nodeName === 'IFRAME') {
+        injectIntoIframe(newNode);
+      }
+      return result;
+    };
+  } catch (e) {}
+  
+  // 3. Intercept property access on iframes to catch late access
+  try {
+    const iframeProto = HTMLIFrameElement.prototype;
+    const originalContentWindow = Object.getOwnPropertyDescriptor(iframeProto, 'contentWindow');
+    const originalContentDocument = Object.getOwnPropertyDescriptor(iframeProto, 'contentDocument');
+
+    if (originalContentWindow && originalContentWindow.get) {
+      Object.defineProperty(iframeProto, 'contentWindow', {
+        get: function() {
+          const win = originalContentWindow.get.call(this);
+          try {
+            if (win && !win.__fingerprintInjected__) {
+              injectIntoIframe(this);
+            }
+          } catch (e) {}
+          return win;
+        },
+        configurable: true,
+        enumerable: true
+      });
+    }
+    
+    if (originalContentDocument && originalContentDocument.get) {
+       Object.defineProperty(iframeProto, 'contentDocument', {
+        get: function() {
+          const doc = originalContentDocument.get.call(this);
+          try {
+            if (doc && doc.defaultView && !doc.defaultView.__fingerprintInjected__) {
+               injectIntoIframe(this);
+            }
+          } catch (e) {}
+          return doc;
+        },
+        configurable: true,
+        enumerable: true
+      });
+    }
+  } catch(e) {}
+
   
   /**
    * Process all existing iframes
@@ -451,123 +583,15 @@ module.exports = {
     const startTime = Date.now();
 
     try {
-      const configJSON = JSON.stringify(this._config);
-      const navigator = this._config.navigator || {};
-      const hardware = this._config.hardware || {};
+      // Generate a worker-safe injection script including navigator + webgl + screen
+      const workerBaseScript = ScriptGenerator.generateScript(this._config, {
+        include: ['navigator','webgl','screen'],
+        includeWorkerInterceptor: false,
+        includeIframeProtection: false,
+        minify: true
+      });
 
-      const workerScript = `
-/**
- * Fingerprint Injection Script for ${workerType}
- * Generated at: ${new Date().toISOString()}
- */
-
-(function() {
-  'use strict';
-  
-  const __fingerprintConfig__ = ${configJSON};
-  
-  /**
-   * Native function wrapper for workers
-   */
-  function wrapNative(originalFn, wrapperFn, options) {
-    options = options || {};
-    const wrapped = function() {
-      return wrapperFn.call(this, originalFn, arguments, this);
-    };
-    
-    Object.defineProperty(wrapped, 'name', {
-      value: options.name || originalFn.name,
-      configurable: true
-    });
-    
-    Object.defineProperty(wrapped, 'length', {
-      value: options.length !== undefined ? options.length : originalFn.length,
-      configurable: true
-    });
-    
-    const nativeString = 'function ' + (options.name || originalFn.name) + '() { [native code] }';
-    wrapped.toString = function() { return nativeString; };
-    wrapped.toSource = function() { return nativeString; };
-    
-    return wrapped;
-  }
-  
-  /**
-   * Apply navigator spoofing in worker context
-   */
-  function spoofNavigator() {
-    if (typeof navigator === 'undefined') return;
-    
-    const overrides = {
-      userAgent: ${JSON.stringify(this._config.userAgent || navigator.userAgent || '')},
-      language: ${JSON.stringify(navigator.language || 'en-US')},
-      languages: Object.freeze(${JSON.stringify(navigator.languages || ['en-US'])}),
-      hardwareConcurrency: ${hardware.cpuCores || 4},
-      deviceMemory: ${hardware.deviceMemory || 8},
-      platform: ${JSON.stringify(this._config.os?.platform || 'Win32')},
-      vendor: ${JSON.stringify(navigator.vendor || 'Google Inc.')},
-      appVersion: ${JSON.stringify(navigator.appVersion || '')},
-      product: ${JSON.stringify(navigator.product || 'Gecko')},
-      productSub: ${JSON.stringify(navigator.productSub || '20030107')}
-    };
-    
-    for (const [key, value] of Object.entries(overrides)) {
-      try {
-        if (key in navigator) {
-          Object.defineProperty(navigator, key, {
-            get: function() { return value; },
-            configurable: true,
-            enumerable: true
-          });
-        }
-      } catch (e) {
-        // Some properties may not be configurable
-      }
-    }
-  }
-  
-  /**
-   * Apply performance.now() noise in worker context
-   */
-  function spoofPerformance() {
-    if (typeof performance === 'undefined' || typeof performance.now !== 'function') return;
-    
-    const originalNow = performance.now.bind(performance);
-    const precision = ${this._config.advancedApis?.performance?.precision || 100};
-    
-    performance.now = wrapNative(originalNow, function(original) {
-      const time = original();
-      return Math.round(time * precision) / precision;
-    }, { name: 'now', length: 0 });
-  }
-  
-  /**
-   * Intercept nested Worker creation
-   */
-  function interceptNestedWorkers() {
-    if (typeof Worker === 'undefined') return;
-    
-    const OriginalWorker = Worker;
-    const config = __fingerprintConfig__;
-    
-    self.Worker = wrapNative(OriginalWorker, function(original, args) {
-      const [scriptURL, options] = args;
-      // For nested workers, we pass through without modification
-      // as the parent worker's spoofing should be sufficient
-      return new original(scriptURL, options);
-    }, { name: 'Worker', length: 1 });
-    
-    self.Worker.prototype = OriginalWorker.prototype;
-  }
-  
-  // Apply all spoofing
-  spoofNavigator();
-  spoofPerformance();
-  interceptNestedWorkers();
-  
-  console.log('[FingerprintInjector] Worker fingerprint injection active (${workerType})');
-})();
-`.trim();
+      const workerScript = workerBaseScript;
 
       this._generationTime = Date.now() - startTime;
       this._cachedScripts.set(cacheKey, workerScript);
@@ -595,6 +619,7 @@ ${script}
   
   const __workerConfig__ = ${configJSON};
   const __workerInjectionScript__ = ${JSON.stringify(workerScript)};
+  const __pageOrigin__ = (function(){ try { return window.location.origin; } catch (e) { return ''; } })();
   
   if (typeof Worker !== 'undefined') {
     const OriginalWorker = Worker;
@@ -604,7 +629,8 @@ ${script}
       
       if (typeof scriptURL === 'string' || scriptURL instanceof URL) {
         const urlString = scriptURL instanceof URL ? scriptURL.href : scriptURL;
-        const injectedScript = __workerInjectionScript__ + '\\n\\nimportScripts("' + urlString + '");';
+        let absUrl = urlString; try { absUrl = new URL(urlString, __pageOrigin__).href; } catch (e) {}
+        const injectedScript = __workerInjectionScript__ + '\\n\\nimportScripts("' + absUrl + '");';
         const blob = new Blob([injectedScript], { type: 'application/javascript' });
         processedURL = URL.createObjectURL(blob);
       }
@@ -626,7 +652,8 @@ ${script}
       
       if (typeof scriptURL === 'string' || scriptURL instanceof URL) {
         const urlString = scriptURL instanceof URL ? scriptURL.href : scriptURL;
-        const injectedScript = __workerInjectionScript__ + '\\n\\nimportScripts("' + urlString + '");';
+        let absUrl = urlString; try { absUrl = new URL(urlString, __pageOrigin__).href; } catch (e) {}
+        const injectedScript = __workerInjectionScript__ + '\\n\\nimportScripts("' + absUrl + '");';
         const blob = new Blob([injectedScript], { type: 'application/javascript' });
         processedURL = URL.createObjectURL(blob);
       }

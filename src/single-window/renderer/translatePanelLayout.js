@@ -130,9 +130,39 @@
       }
     });
 
-    translatePanelBody.style.display = targetPanel === 'translate' ? 'block' : 'none';
+    translatePanelBody.style.display = targetPanel === 'translate' ? 'flex' : 'none';
+    if (targetPanel === 'translate') {
+      // 强制回流以修复滚动条可能消失的问题
+      void translatePanelBody.offsetHeight;
+    }
+
     if (environmentPanelBody) {
-      environmentPanelBody.style.display = targetPanel === 'environment' ? 'block' : 'none';
+      // 环境面板需要 flex 布局以支持内部滚动和固定底部
+      environmentPanelBody.style.display = targetPanel === 'environment' ? 'flex' : 'none';
+    }
+
+    // 切换面板模式类，用于调整宽度
+    if (targetPanel === 'environment') {
+      panel.classList.add('env-mode');
+      // 通知主进程更新宽度，以便调整 BrowserView 大小
+      // 环境设置面板宽度调整为与翻译设置面板一致 (420px)
+      if (window.electronAPI?.notifyTranslationPanelResized) {
+        window.electronAPI.notifyTranslationPanelResized({
+          state: currentState,
+          width: DEFAULT_WIDTHS.expanded,
+          widths: { ...widths, expanded: DEFAULT_WIDTHS.expanded }
+        });
+      }
+    } else {
+      panel.classList.remove('env-mode');
+      // 恢复翻译面板宽度
+      if (window.electronAPI?.notifyTranslationPanelResized) {
+        window.electronAPI.notifyTranslationPanelResized({
+          state: currentState,
+          width: DEFAULT_WIDTHS.expanded,
+          widths: { ...widths, expanded: DEFAULT_WIDTHS.expanded }
+        });
+      }
     }
   }
 

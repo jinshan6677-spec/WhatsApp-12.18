@@ -599,6 +599,18 @@
     // 代理操作按钮
     container.querySelector('#test-proxy-btn').addEventListener('click', testProxy);
     container.querySelector('#detect-network-btn').addEventListener('click', detectNetwork);
+
+    // 结果展示关闭按钮
+    const closeResultBtn = container.querySelector('#close-result-btn');
+    if (closeResultBtn) {
+      closeResultBtn.addEventListener('click', () => {
+        const wrapper = container.querySelector('#fingerprint-result-wrapper');
+        if (wrapper) {
+          wrapper.classList.remove('visible');
+          wrapper.classList.add('hidden');
+        }
+      });
+    }
     container.querySelector('#save-proxy-config-btn').addEventListener('click', saveProxyConfig);
 
     // 指纹操作按钮

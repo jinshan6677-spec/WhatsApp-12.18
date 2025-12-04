@@ -34,28 +34,77 @@ try {
     try {
       const { FingerprintInjector } = require('./infrastructure/fingerprint');
       const { webFrame } = require('electron');
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+
       const injector = new FingerprintInjector(config, {
-        minify: true,
+        minify: false,  // 禁用 minify 以便调试
         includeWorkerInterceptor: true,
         includeIframeProtection: true,
         strictMode: true
       });
-      const essentialModules = ['navigator', 'webgl', 'canvas', 'fonts', 'clientRects', 'timezone', 'geolocation', 'mediaDevices', 'webrtc', 'screen'];
-      const injectionScript = injector.getInjectionScript({ minify: true, includeWorkerInterceptor: false, include: essentialModules });
+      const essentialModules = ['navigator', 'browserBehavior', 'webgl', 'canvas', 'fonts', 'clientRects', 'timezone', 'geolocation', 'mediaDevices', 'webrtc', 'screen'];
+      const injectionScript = injector.getInjectionScript({ minify: false, includeWorkerInterceptor: true, include: essentialModules });
+
+      // 保存脚本到临时文件以便调试
+      try {
+        const tempPath = path.join(os.tmpdir(), `fp-injection-${Date.now()}.js`);
+        fs.writeFileSync(tempPath, injectionScript);
+        console.log('[Preload-View] Script saved to:', tempPath);
+      } catch (saveError) {
+        console.warn('[Preload-View] Could not save script:', saveError.message);
+      }
+
+      // 测试脚本语法
+      try {
+        new Function(injectionScript);
+        console.log('[Preload-View] ✓ Script syntax is valid');
+      } catch (syntaxError) {
+        console.error('[Preload-View] ✗ Script has syntax error:', syntaxError.message);
+        throw syntaxError;
+      }
+
       await webFrame.executeJavaScript(injectionScript, true);
       console.log('[Preload-View] ✓ Fingerprint injected at preload');
     } catch (e) {
       console.error('[Preload-View] ✗ Fingerprint preload injection failed:', e);
+      console.error('[Preload-View] Error stack:', e.stack);
     }
   };
+  const reinject = (cfg) => {
+    injectFingerprint(cfg).catch(() => { });
+    try {
+      window.addEventListener('DOMContentLoaded', () => {
+        injectFingerprint(cfg).catch(() => { });
+      }, { once: true });
+    } catch (_) { }
+    try {
+      window.addEventListener('load', () => {
+        injectFingerprint(cfg).catch(() => { });
+      }, { once: true });
+    } catch (_) { }
+  };
   if (fpConfig) {
-    injectFingerprint(fpConfig);
+    console.log('[Preload-View] Using command-line fingerprint config');
+    reinject(fpConfig);
   } else {
+    console.log('[Preload-View] Loading fingerprint config from IPC for account:', accountId);
     ipcRenderer.invoke('fingerprint:get', accountId).then(res => {
       if (res && res.success && res.config) {
-        injectFingerprint(res.config);
+        console.log('[Preload-View] ✓ Fingerprint config loaded successfully');
+        console.log('[Preload-View] Config preview:', {
+          userAgent: res.config.userAgent?.substring(0, 50) + '...',
+          screen: res.config.hardware?.screen,
+          webgl: { vendor: res.config.webgl?.vendor, renderer: res.config.webgl?.renderer?.substring(0, 50) + '...' }
+        });
+        reinject(res.config);
+      } else {
+        console.warn('[Preload-View] ✗ Failed to load fingerprint config:', res);
       }
-    }).catch(() => { });
+    }).catch((err) => {
+      console.error('[Preload-View] ✗ Error loading fingerprint config:', err);
+    });
   }
 } catch (e) {
   console.error('[Preload-View] ✗ Fingerprint setup error:', e);

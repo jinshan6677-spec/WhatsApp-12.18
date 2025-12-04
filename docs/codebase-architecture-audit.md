@@ -20,7 +20,8 @@
   - `src/ui/main-window/ViewBoundsManager.js:138`。
   - `src/utils/encryption.js:19–20`。
 - 超大文件与复杂度
-  - `src/single-window/renderer/environmentSettingsPanel.js`（1777 行）、`src/single-window/renderer/translateSettingsPanel.js`（1437 行）、`src/single-window/renderer/preload-main.js`（1075 行）、`src/domain/fingerprint/FingerprintDatabase.js`（997 行）、`src/application/services/fingerprint/FingerprintTestRunner.js`（937 行）、`src/application/services/fingerprint/FingerprintValidator.js`（705 行）。建议按领域拆分、引入子模块与单测。
+  - `src/single-window/renderer/translateSettingsPanel.js`（1437 行）、`src/single-window/renderer/preload-main.js`（1075 行）、`src/domain/fingerprint/FingerprintDatabase.js`（997 行）、`src/application/services/fingerprint/FingerprintTestRunner.js`（937 行）、`src/application/services/fingerprint/FingerprintValidator.js`（705 行）。建议按领域拆分、引入子模块与单测。
+  - 环境设置面板已拆分为子模块，详情见“已实施改动（环境设置面板拆分）”。
 - 可读性与维护性
   - 预加载注入同步读文件：`src/preload-view.js:132–141`，在 `DOMContentLoaded` 阶段逐个注入，建议合并/异步或打包资源。
 
@@ -156,8 +157,25 @@
 
 ## 验证与风险
 - Lint：`npm run lint` 无错误，仅既有 22 个警告（与当前改动无关）。
-- 测试：`npm test` 显示 `ViewManager` 相关用例失败（防抖与立即执行逻辑），需后续修复，不影响语音队列改动。
-- 依赖升级为中长期任务，需分支验证与回归测试。
+  - 测试：`npm test` 显示 `ViewManager` 相关用例失败（防抖与立即执行逻辑），需后续修复，不影响语音队列改动。
+  - 依赖升级为中长期任务，需分支验证与回归测试。
+
+## 已实施改动（环境设置面板拆分）
+- 模块化目录
+  - 新增 `src/single-window/renderer/environment-settings/` 目录：
+    - `state.js` 保存账号与配置状态。
+    - `render.js` 渲染 UI、折叠与条件字段绑定。
+    - `proxy.js` 代理配置加载/解析/测试/保存逻辑。
+    - `fingerprint.js` 指纹收集/验证/预览/模板管理逻辑。
+    - `index.js` 入口初始化与事件绑定，导出 `window.EnvironmentSettingsPanel`（`init`、`setAccount`、`open`）。
+- 接入与兼容
+  - `src/single-window/renderer/app.html:104–109` 更新脚本引入顺序，替换原 `environmentSettingsPanel.js` 为上述子模块与入口。
+  - 保持 `window.EnvironmentSettingsPanel` API 不变，`translatePanelLayout.js:61–69,209–220` 的调用无需改动。
+- 效果与规模
+  - 入口文件约 105 行，原 1777 行超大文件拆分为 4 个明确子模块，降低耦合、提升可测试性与维护性。
+- 验证
+  - `npm run lint` 通过（0 错误）。
+  - `npm test` 存在与本改动无关的若干失败（归档测试与指纹属性用例）；环境面板相关初始化与事件绑定正常。
 ## 权重配置与 CI 建议
 - 指纹权重配置入口（环境变量）
   - `FP_WEIGHTS_JSON`：直接提供 JSON 字符串。

@@ -247,12 +247,32 @@ class ScriptGenerator {
    * @private
    */
   static _minifyScript(script) {
-    return script
+    // Preserve string literals while performing safe whitespace collapse outside strings
+    // Strategy: temporarily extract string literals, minify non-string parts, then restore
+    const placeholders = [];
+    const placeholderToken = `__STR_PLACEHOLDER__`;
+
+    // Extract double-quoted, single-quoted, and template literals
+    const stringRegex = /(["'`])(?:\\.|(?!\1)[^\\])*\1/g;
+    let withPlaceholders = script.replace(stringRegex, function(match) {
+      const index = placeholders.push(match) - 1;
+      return `${placeholderToken}${index}__`;
+    });
+
+    // Minify non-string segments: remove comments and collapse whitespace
+    withPlaceholders = withPlaceholders
       .replace(/\/\/[^\n]*/g, '') // Remove single-line comments
       .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
       .replace(/\s+/g, ' ') // Collapse whitespace
-      .replace(/\s*([{};,:])\s*/g, '$1') // Remove space around punctuation
       .trim();
+
+    // Restore string literals exactly as they were
+    const restored = withPlaceholders.replace(new RegExp(`${placeholderToken}(\\d+)__`, 'g'), function(_, idx) {
+      return placeholders[Number(idx)];
+    });
+
+    // IMPORTANT: Do NOT strip spaces around punctuation globally, to avoid altering string contents
+    return restored;
   }
 
   /**

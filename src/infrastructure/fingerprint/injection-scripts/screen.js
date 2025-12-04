@@ -129,17 +129,92 @@ class ScreenSpoof {
   try {
     var w = window;
     if (!w || !w.screen) return;
-    Object.defineProperty(w.screen,'width',{get:function(){return ${c.width};},configurable:true,enumerable:true});
-    Object.defineProperty(w.screen,'height',{get:function(){return ${c.height};},configurable:true,enumerable:true});
-    Object.defineProperty(w.screen,'availWidth',{get:function(){return ${c.availWidth};},configurable:true,enumerable:true});
-    Object.defineProperty(w.screen,'availHeight',{get:function(){return ${c.availHeight};},configurable:true,enumerable:true});
-    Object.defineProperty(w.screen,'colorDepth',{get:function(){return ${c.colorDepth};},configurable:true,enumerable:true});
-    Object.defineProperty(w.screen,'pixelDepth',{get:function(){return ${c.pixelDepth};},configurable:true,enumerable:true});
-    Object.defineProperty(w,'devicePixelRatio',{get:function(){return ${c.devicePixelRatio};},configurable:true,enumerable:true});
+
+    // 1. Try to override properties on the screen instance
+    try {
+      Object.defineProperty(w.screen,'width',{get:function(){return ${c.width};},configurable:true,enumerable:true});
+      Object.defineProperty(w.screen,'height',{get:function(){return ${c.height};},configurable:true,enumerable:true});
+      Object.defineProperty(w.screen,'availWidth',{get:function(){return ${c.availWidth};},configurable:true,enumerable:true});
+      Object.defineProperty(w.screen,'availHeight',{get:function(){return ${c.availHeight};},configurable:true,enumerable:true});
+      Object.defineProperty(w.screen,'colorDepth',{get:function(){return ${c.colorDepth};},configurable:true,enumerable:true});
+      Object.defineProperty(w.screen,'pixelDepth',{get:function(){return ${c.pixelDepth};},configurable:true,enumerable:true});
+    } catch(e) {}
+
+    // 2. Try to override properties on Screen.prototype (stronger fallback)
+    try {
+      if (window.Screen && window.Screen.prototype) {
+        var proto = window.Screen.prototype;
+        Object.defineProperty(proto,'width',{get:function(){return ${c.width};},configurable:true,enumerable:true});
+        Object.defineProperty(proto,'height',{get:function(){return ${c.height};},configurable:true,enumerable:true});
+        Object.defineProperty(proto,'availWidth',{get:function(){return ${c.availWidth};},configurable:true,enumerable:true});
+        Object.defineProperty(proto,'availHeight',{get:function(){return ${c.availHeight};},configurable:true,enumerable:true});
+        Object.defineProperty(proto,'colorDepth',{get:function(){return ${c.colorDepth};},configurable:true,enumerable:true});
+        Object.defineProperty(proto,'pixelDepth',{get:function(){return ${c.pixelDepth};},configurable:true,enumerable:true});
+      }
+    } catch(e) {}
+
+    // 3. Spoof window properties to match screen resolution (often checked by tests)
+    try {
+      Object.defineProperty(w,'innerWidth',{get:function(){return ${c.width};},configurable:true,enumerable:true});
+      Object.defineProperty(w,'innerHeight',{get:function(){return ${c.height};},configurable:true,enumerable:true});
+      Object.defineProperty(w,'outerWidth',{get:function(){return ${c.width};},configurable:true,enumerable:true});
+      Object.defineProperty(w,'outerHeight',{get:function(){return ${c.height};},configurable:true,enumerable:true});
+      Object.defineProperty(w,'devicePixelRatio',{get:function(){return ${c.devicePixelRatio};},configurable:true,enumerable:true});
+    } catch(e) {}
+
   } catch(e) {}
+  // 1. Try to override window.screen directly (most effective if allowed)
+  try {
+    // Forcefully try to delete existing screen property
+    try { delete window.screen; } catch(e) {}
+    
+    var __sc = window.screen || {};
+    // Create a complete mock screen object
+    var __mockScreen = {};
+    
+    // Copy properties from original if possible, or defaults
+    for (var p in __sc) {
+      try { __mockScreen[p] = __sc[p]; } catch(e) {}
+    }
+    
+    // Override key properties
+    __mockScreen.width = ${c.width};
+    __mockScreen.height = ${c.height};
+    __mockScreen.availWidth = ${c.availWidth};
+    __mockScreen.availHeight = ${c.availHeight};
+    __mockScreen.colorDepth = ${c.colorDepth};
+    __mockScreen.pixelDepth = ${c.pixelDepth};
+    
+    // Use Proxy as fallback for dynamic access
+    var __prox = new Proxy(__sc, {
+      get: function(t, p, r) {
+        if (p === 'width') return ${c.width};
+        if (p === 'height') return ${c.height};
+        if (p === 'availWidth') return ${c.availWidth};
+        if (p === 'availHeight') return ${c.availHeight};
+        if (p === 'colorDepth') return ${c.colorDepth};
+        if (p === 'pixelDepth') return ${c.pixelDepth};
+        return Reflect.get(t, p, r);
+      }
+    });
+
+    Object.defineProperty(window, 'screen', {
+      get: function() { return __prox; },
+      configurable: true,
+      enumerable: true
+    });
+  } catch(e) {
+    // Fallback to defineProperty on instance if window.screen replacement failed
+    try {
+       Object.defineProperty(window.screen, 'width', { value: ${c.width}, configurable: true });
+       Object.defineProperty(window.screen, 'height', { value: ${c.height}, configurable: true });
+    } catch(e2) {}
+  }
   try {
     if (window.visualViewport) {
       Object.defineProperty(window.visualViewport,'scale',{get:function(){return 1;},configurable:true,enumerable:true});
+      Object.defineProperty(window.visualViewport,'width',{get:function(){return ${c.width};},configurable:true,enumerable:true});
+      Object.defineProperty(window.visualViewport,'height',{get:function(){return ${c.height};},configurable:true,enumerable:true});
     }
   } catch(e) {}
   try {

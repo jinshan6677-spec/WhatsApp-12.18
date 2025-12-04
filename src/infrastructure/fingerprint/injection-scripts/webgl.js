@@ -20,7 +20,6 @@
 'use strict';
 
 const { NativeWrapper } = require('./core/native-wrapper');
-const { PrototypeGuard } = require('./core/prototype-guard');
 const NoiseEngine = require('../../../domain/fingerprint/NoiseEngine');
 
 /**
@@ -108,7 +107,7 @@ class WebGLSpoof {
   static apply(config = {}) {
     // Merge with defaults
     const mergedConfig = { ...WebGLSpoof._defaultConfig, ...config };
-    
+
     // Validate mode
     if (!['custom', 'real', 'off'].includes(mergedConfig.mode)) {
       throw new WebGLSpoofError(
@@ -235,7 +234,7 @@ class WebGLSpoof {
     // Create wrapped function
     const wrappedGetParameter = NativeWrapper.wrap(
       originalGetParameter,
-      function(original, args, thisArg) {
+      function (original, args, thisArg) {
         const gl = thisArg;
         const pname = args[0];
         const config = WebGLSpoof._appliedConfig;
@@ -256,13 +255,15 @@ class WebGLSpoof {
         }
 
         // Handle UNMASKED_VENDOR_WEBGL (Req 6.3)
-        if (pname === WebGLConstants.UNMASKED_VENDOR_WEBGL && config.unmaskedVendor) {
-          return config.unmaskedVendor;
+        // Use unmaskedVendor if available, otherwise fall back to vendor
+        if (pname === WebGLConstants.UNMASKED_VENDOR_WEBGL) {
+          return config.unmaskedVendor || config.vendor || original.apply(gl, args);
         }
 
         // Handle UNMASKED_RENDERER_WEBGL (Req 6.4)
-        if (pname === WebGLConstants.UNMASKED_RENDERER_WEBGL && config.unmaskedRenderer) {
-          return config.unmaskedRenderer;
+        // Use unmaskedRenderer if available, otherwise fall back to renderer
+        if (pname === WebGLConstants.UNMASKED_RENDERER_WEBGL) {
+          return config.unmaskedRenderer || config.renderer || original.apply(gl, args);
         }
 
         // Return original for other parameters
@@ -297,7 +298,7 @@ class WebGLSpoof {
     // Create wrapped function
     const wrappedGetShaderPrecisionFormat = NativeWrapper.wrap(
       originalGetShaderPrecisionFormat,
-      function(original, args, thisArg) {
+      function (original, args, thisArg) {
         const gl = thisArg;
         const config = WebGLSpoof._appliedConfig;
 
@@ -307,11 +308,11 @@ class WebGLSpoof {
         }
 
         const [shaderType, precisionType] = args;
-        
+
         // Check if we have custom precision for this combination
         const shaderKey = shaderType === 0x8B31 ? 'vertex' : 'fragment'; // VERTEX_SHADER or FRAGMENT_SHADER
         const precisionKey = WebGLSpoof._getPrecisionKey(precisionType);
-        
+
         if (config.shaderPrecision[shaderKey] && config.shaderPrecision[shaderKey][precisionKey]) {
           const customPrecision = config.shaderPrecision[shaderKey][precisionKey];
           // Return a WebGLShaderPrecisionFormat-like object
@@ -370,7 +371,7 @@ class WebGLSpoof {
     // Create wrapped function
     const wrappedGetSupportedExtensions = NativeWrapper.wrap(
       originalGetSupportedExtensions,
-      function(original, args, thisArg) {
+      function (original, args, thisArg) {
         const gl = thisArg;
         const config = WebGLSpoof._appliedConfig;
 
@@ -411,7 +412,7 @@ class WebGLSpoof {
     // Create wrapped function
     const wrappedReadPixels = NativeWrapper.wrap(
       originalReadPixels,
-      function(original, args, thisArg) {
+      function (original, args, thisArg) {
         const gl = thisArg;
         const config = WebGLSpoof._appliedConfig;
 
@@ -419,15 +420,15 @@ class WebGLSpoof {
         const result = original.apply(gl, args);
 
         // If mode is 'off' or 'real', or noise is disabled, return original result
-        if (!config || config.mode === 'off' || config.mode === 'real' || 
-            !config.imageNoise || !WebGLSpoof._noiseEngine) {
+        if (!config || config.mode === 'off' || config.mode === 'real' ||
+          !config.imageNoise || !WebGLSpoof._noiseEngine) {
           return result;
         }
 
         // Get the pixels array from args (it's passed by reference)
         // readPixels signature: readPixels(x, y, width, height, format, type, pixels)
         const pixels = args[6];
-        
+
         if (pixels && (pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray)) {
           // Apply noise to pixel data
           WebGLSpoof._applyNoiseToPixels(pixels);
@@ -458,7 +459,7 @@ class WebGLSpoof {
     // Apply noise to RGBA pixels (4 bytes per pixel)
     for (let i = 0; i < pixels.length; i += 4) {
       const noise = WebGLSpoof._noiseEngine.getNoise(i);
-      
+
       // Apply noise to RGB channels, clamp to valid range [0, 255]
       pixels[i] = Math.max(0, Math.min(255, Math.round(pixels[i] + noise)));     // R
       pixels[i + 1] = Math.max(0, Math.min(255, Math.round(pixels[i + 1] + noise))); // G
@@ -601,7 +602,7 @@ class WebGLSpoof {
    */
   static generateInjectionScript(config) {
     const mergedConfig = { ...WebGLSpoof._defaultConfig, ...config };
-    
+
     // If seed is not provided, generate one
     if (mergedConfig.seed === null) {
       mergedConfig.seed = Math.floor(Math.random() * 0xFFFFFFFF) >>> 0;
@@ -715,39 +716,101 @@ class WebGLSpoof {
     return fn;
   }
   
+  // Resolve global scope for both window and worker
+  const scope = (typeof window !== 'undefined') ? window : (typeof self !== 'undefined' ? self : globalThis);
+  
+  // Helper to safely get prototype
+  function getProto(cls) {
+    try { return cls.prototype; } catch(e) { return null; }
+  }
+
   // Spoof getParameter for both WebGL contexts
   function spoofGetParameter(contextName) {
-    if (typeof window[contextName] === 'undefined') return;
+    const targetClass = scope[contextName];
+    if (typeof targetClass === 'undefined') return;
     
-    const proto = window[contextName].prototype;
+    const proto = targetClass.prototype;
     const originalGetParameter = proto.getParameter;
     
     proto.getParameter = createNativeFunction('getParameter', 1, function(pname) {
-      if (pname === VENDOR && config.vendor) return config.vendor;
-      if (pname === RENDERER && config.renderer) return config.renderer;
-      if (pname === UNMASKED_VENDOR_WEBGL && config.unmaskedVendor) return config.unmaskedVendor;
-      if (pname === UNMASKED_RENDERER_WEBGL && config.unmaskedRenderer) return config.unmaskedRenderer;
+      // Standard Vendor/Renderer
+      if (pname === 0x1F00 && config.vendor) return config.vendor; // VENDOR
+      if (pname === 0x1F01 && config.renderer) return config.renderer; // RENDERER
+      
+      // Unmasked Vendor/Renderer (WEBGL_debug_renderer_info)
+      // Use unmaskedVendor if available, otherwise fall back to vendor
+      if (pname === 0x9245 || pname === 37445) {
+        return config.unmaskedVendor || config.vendor || originalGetParameter.apply(this, arguments);
+      }
+      // Use unmaskedRenderer if available, otherwise fall back to renderer
+      if (pname === 0x9246 || pname === 37446) {
+        return config.unmaskedRenderer || config.renderer || originalGetParameter.apply(this, arguments);
+      }
+      
       return originalGetParameter.apply(this, arguments);
     });
+  }
+
+  // Handle OffscreenCanvas specifically if it exists
+  if (typeof scope.OffscreenCanvas !== 'undefined') {
+    try {
+      const originalGetContext = scope.OffscreenCanvas.prototype.getContext;
+      scope.OffscreenCanvas.prototype.getContext = createNativeFunction('getContext', 1, function(type, options) {
+        const ctx = originalGetContext.call(this, type, options);
+        if (ctx && (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl')) {
+          // Ensure the context is spoofed (it should be if it shares prototype, but we force check)
+          try {
+             // We can't easily wrap methods on the instance if they are already wrapped on prototype
+             // But we can check if the prototype wrapper applied.
+             // Usually WebGLRenderingContext is shared.
+          } catch(e) {}
+        }
+        return ctx;
+      });
+    } catch(e) {}
   }
   
   // Spoof getSupportedExtensions
   function spoofGetSupportedExtensions(contextName) {
-    if (typeof window[contextName] === 'undefined' || !config.extensions) return;
+    if (typeof scope[contextName] === 'undefined' || !config.extensions) return;
     
-    const proto = window[contextName].prototype;
+    const proto = scope[contextName].prototype;
     const originalGetSupportedExtensions = proto.getSupportedExtensions;
     
     proto.getSupportedExtensions = createNativeFunction('getSupportedExtensions', 0, function() {
-      return [...config.extensions];
+      const exts = [...config.extensions];
+      // Ensure WEBGL_debug_renderer_info is present if we are spoofing unmasked values
+      if (config.unmaskedVendor || config.unmaskedRenderer) {
+        if (!exts.includes('WEBGL_debug_renderer_info')) {
+          exts.push('WEBGL_debug_renderer_info');
+        }
+      }
+      return exts;
+    });
+  }
+  
+  // Spoof getExtension for WEBGL_debug_renderer_info and others
+  function spoofGetExtension(contextName) {
+    if (typeof scope[contextName] === 'undefined') return;
+    const proto = scope[contextName].prototype;
+    const originalGetExtension = proto.getExtension;
+    proto.getExtension = createNativeFunction('getExtension', 1, function(name) {
+      const n = String(name);
+      if (n === 'WEBGL_debug_renderer_info' || n === 'webkit_WEBGL_debug_renderer_info') {
+        return { 
+          UNMASKED_VENDOR_WEBGL: 0x9245, 
+          UNMASKED_RENDERER_WEBGL: 0x9246 
+        };
+      }
+      return originalGetExtension.apply(this, arguments);
     });
   }
   
   // Spoof readPixels with noise
   function spoofReadPixels(contextName) {
-    if (typeof window[contextName] === 'undefined') return;
+    if (typeof scope[contextName] === 'undefined') return;
     
-    const proto = window[contextName].prototype;
+    const proto = scope[contextName].prototype;
     const originalReadPixels = proto.readPixels;
     
     proto.readPixels = createNativeFunction('readPixels', 7, function(x, y, width, height, format, type, pixels) {
@@ -764,6 +827,8 @@ class WebGLSpoof {
   spoofGetParameter('WebGL2RenderingContext');
   spoofGetSupportedExtensions('WebGLRenderingContext');
   spoofGetSupportedExtensions('WebGL2RenderingContext');
+  spoofGetExtension('WebGLRenderingContext');
+  spoofGetExtension('WebGL2RenderingContext');
   spoofReadPixels('WebGLRenderingContext');
   spoofReadPixels('WebGL2RenderingContext');
 })();
@@ -782,13 +847,13 @@ class WebGLSpoof {
     }
 
     const webglConfig = fingerprintConfig.webgl || {};
-    
+
     return {
       mode: webglConfig.mode || WebGLSpoof._defaultConfig.mode,
       vendor: webglConfig.vendor || WebGLSpoof._defaultConfig.vendor,
       renderer: webglConfig.renderer || WebGLSpoof._defaultConfig.renderer,
-      unmaskedVendor: webglConfig.unmaskedVendor || WebGLSpoof._defaultConfig.unmaskedVendor,
-      unmaskedRenderer: webglConfig.unmaskedRenderer || WebGLSpoof._defaultConfig.unmaskedRenderer,
+      unmaskedVendor: (webglConfig.unmaskedVendor !== undefined ? webglConfig.unmaskedVendor : (webglConfig.vendor !== undefined ? webglConfig.vendor : WebGLSpoof._defaultConfig.unmaskedVendor)),
+      unmaskedRenderer: (webglConfig.unmaskedRenderer !== undefined ? webglConfig.unmaskedRenderer : (webglConfig.renderer !== undefined ? webglConfig.renderer : WebGLSpoof._defaultConfig.unmaskedRenderer)),
       extensions: webglConfig.extensions || WebGLSpoof._defaultConfig.extensions,
       shaderPrecision: webglConfig.shaderPrecision || WebGLSpoof._defaultConfig.shaderPrecision,
       imageNoise: webglConfig.imageNoise !== undefined ? webglConfig.imageNoise : WebGLSpoof._defaultConfig.imageNoise,

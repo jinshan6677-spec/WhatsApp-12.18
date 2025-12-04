@@ -18,7 +18,6 @@
 
 'use strict';
 
-const { NativeWrapper } = require('./core/native-wrapper');
 const { PrototypeGuard } = require('./core/prototype-guard');
 
 /**
@@ -577,6 +576,33 @@ class NavigatorSpoof {
   } catch (e) {
     // Property may not be configurable
   }
+
+  // Fallback: define properties directly on the navigator instance
+  try {
+    for (const prop of simpleProps) {
+      if (config[prop] !== undefined) {
+        try {
+          Object.defineProperty(navigator, prop, {
+            get: createGetter(prop, config[prop]),
+            set: undefined,
+            enumerable: true,
+            configurable: true
+          });
+        } catch (_) {}
+      }
+    }
+    try {
+      const frozenLanguages2 = Object.freeze([...config.languages]);
+      Object.defineProperty(navigator, 'languages', {
+        get: createGetter('languages', frozenLanguages2),
+        set: undefined,
+        enumerable: true,
+        configurable: true
+      });
+    } catch (_) {}
+  } catch (_) {}
+
+  
 })();
 `;
   }

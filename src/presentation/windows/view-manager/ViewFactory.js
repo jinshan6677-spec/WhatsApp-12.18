@@ -137,9 +137,33 @@ class ViewFactory {
     });
 
 
-    // Set user agent if provided, otherwise use default WhatsApp-compatible UA
     const userAgent = (config.fingerprint && config.fingerprint.userAgent) || config.userAgent || this._getDefaultUserAgent();
     view.webContents.setUserAgent(userAgent);
+
+    const buildAcceptLanguage = () => {
+      const langs = (config.fingerprint && (
+        (config.fingerprint.navigator && config.fingerprint.navigator.languages) ||
+        (config.fingerprint.language && config.fingerprint.language.list)
+      )) || [];
+      const primary = (config.fingerprint && (
+        (config.fingerprint.navigator && config.fingerprint.navigator.language) ||
+        (config.fingerprint.language && config.fingerprint.language.primary)
+      )) || (langs[0] || 'en-US');
+      const uniq = [];
+      for (const l of [primary, ...langs]) { if (l && !uniq.includes(l)) uniq.push(l); }
+      const parts = uniq.map((l, i) => i === 0 ? l : `${l};q=${Math.max(0.1, (0.9 - i*0.1)).toFixed(1)}`);
+      return parts.join(', ');
+    };
+    const acceptLanguage = buildAcceptLanguage();
+
+    try {
+      accountSession.webRequest.onBeforeSendHeaders((details, callback) => {
+        const headers = details.requestHeaders || {};
+        headers['User-Agent'] = userAgent;
+        headers['Accept-Language'] = acceptLanguage;
+        callback({ requestHeaders: headers });
+      });
+    } catch (_) {}
 
     if (
       config.proxy &&
@@ -284,7 +308,7 @@ class ViewFactory {
       }
 
       // Get the injection script
-      const essentialModules = ['navigator','webgl','canvas','fonts','clientRects','timezone','geolocation','mediaDevices','webrtc','screen'];
+      const essentialModules = ['navigator','browserBehavior','webgl','canvas','fonts','clientRects','timezone','geolocation','mediaDevices','webrtc','screen'];
       const injectionScript = injector.getInjectionScript({ includeWorkerInterceptor: false, include: essentialModules });
       const generationTime = injector.getGenerationTime();
 

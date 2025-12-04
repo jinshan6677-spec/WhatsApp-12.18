@@ -146,9 +146,11 @@ ${this._generateImportStatement(originalURL, workerType)}
     };
     for (const [key, value] of Object.entries(navigatorOverrides)) {
       try {
-        if (key in navigator) {
-          Object.defineProperty(navigator, key, { get: function() { return value; }, configurable: true });
-        }
+        Object.defineProperty(navigator, key, {
+          get: function() { return value; },
+          configurable: true,
+          enumerable: true
+        });
       } catch (e) {}
     }
   }
@@ -158,13 +160,16 @@ ${this._generateImportStatement(originalURL, workerType)}
   _generateNestedWorkerInterception() {
     const configJSON = JSON.stringify(this._config);
     const injectionScript = this._getInjectionScript();
+    const origin = (this._scope && this._scope.location && this._scope.location.origin) ? this._scope.location.origin : '';
     return `
   if (typeof Worker !== 'undefined') {
     const OriginalWorker = Worker;
     const __nestedConfig__ = ${configJSON};
     const __nestedInjectionScript__ = ${JSON.stringify(injectionScript)};
     self.Worker = function(scriptURL, options) {
-      const nestedScript = '(function() { const __fingerprintConfig__ = ' + JSON.stringify(__nestedConfig__) + '; ' + __nestedInjectionScript__ + ' })(); importScripts(\"' + scriptURL + '\");';
+      const __origin__ = ${JSON.stringify(origin)};
+      const nestedScript = '(function() { const __fingerprintConfig__ = ' + JSON.stringify(__nestedConfig__) + '; ' + __nestedInjectionScript__ + ' })(); ' +
+        'importScripts(' + (function(u){ try { return JSON.stringify(new URL(u, __origin__).href); } catch(e) { return JSON.stringify(u); } }) (String(scriptURL)) + ');';
       const blob = new Blob([nestedScript], { type: 'application/javascript' });
       const blobURL = URL.createObjectURL(blob);
       return new OriginalWorker(blobURL, options);
@@ -178,9 +183,15 @@ ${this._generateImportStatement(originalURL, workerType)}
   }
 
   _generateImportStatement(originalURL, workerType) {
+    const origin = (this._scope && this._scope.location && this._scope.location.origin) ? this._scope.location.origin : '';
     return `
 try {
-  importScripts(${JSON.stringify(originalURL)});
+  (function(){
+    var __origin__ = ${JSON.stringify(origin)};
+    var __url__ = ${JSON.stringify(originalURL)};
+    try { __url__ = new URL(__url__, __origin__).href; } catch (e) {}
+    importScripts(__url__);
+  })();
 } catch (e) {
   console.error('[FingerprintInjector] Failed to import ${workerType} script:', e);
   ${workerType !== 'serviceworker' ? 'throw e;' : ''}
