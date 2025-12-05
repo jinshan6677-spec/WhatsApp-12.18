@@ -87,6 +87,15 @@ class ViewFactory {
       } catch (error) {
         this.log('error', `Failed to apply proxy for ${accountId}:`, error);
       }
+    } else {
+      // Proxy is disabled or not configured - ensure direct connection
+      // This clears any previously set proxy rules on the session
+      try {
+        await accountSession.setProxy({ mode: 'direct' });
+        this.log('info', `Proxy disabled for ${accountId}, using direct connection`);
+      } catch (error) {
+        this.log('error', `Failed to clear proxy for ${accountId}:`, error);
+      }
     }
 
     // Set account ID in environment for preload script
