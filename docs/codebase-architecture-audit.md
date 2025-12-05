@@ -20,8 +20,9 @@
   - `src/ui/main-window/ViewBoundsManager.js:138`。
   - `src/utils/encryption.js:19–20`。
 - 超大文件与复杂度
-  - `src/single-window/renderer/translateSettingsPanel.js`（1437 行）、`src/single-window/renderer/preload-main.js`（1075 行）、`src/domain/fingerprint/FingerprintDatabase.js`（997 行）、`src/application/services/fingerprint/FingerprintTestRunner.js`（937 行）、`src/application/services/fingerprint/FingerprintValidator.js`（705 行）。建议按领域拆分、引入子模块与单测。
+  - `src/single-window/renderer/translate-settings/*`（已拆分模块化）、`src/single-window/renderer/preload-main.js`（1075 行）、`src/domain/fingerprint/FingerprintDatabase.js`（997 行）、`src/application/services/fingerprint/FingerprintTestRunner.js`（937 行）、`src/application/services/fingerprint/FingerprintValidator.js`（705 行）。建议按领域拆分、引入子模块与单测。
   - 环境设置面板已拆分为子模块，详情见“已实施改动（环境设置面板拆分）”。
+  - 翻译设置面板已拆分为子模块，详情见“已实施改动（翻译设置面板拆分）”。
 - 可读性与维护性
   - 预加载注入同步读文件：`src/preload-view.js:132–141`，在 `DOMContentLoaded` 阶段逐个注入，建议合并/异步或打包资源。
 
@@ -93,7 +94,8 @@
   - 将 `AudioDownloader` 缓存迁移至 LRU 并限流。
   - 修复 `preload-main.js` 重复事件与 `ipcHandlers.js` 重复日志。
 - 中优先级
-  - 拆分环境/翻译设置面板；完善单测。
+ - 拆分环境/翻译设置面板；完善单测。
+  - 拆分环境设置面板；完善单测。（翻译设置面板已完成拆分）
   - 优化 `preload-view.js` 注入（异步/打包/重试/健康检查）。
   - 升级 `jest` 至 30.x 并与 jsdom 对齐。
 - 低优先级
@@ -176,6 +178,23 @@
 - 验证
   - `npm run lint` 通过（0 错误）。
   - `npm test` 存在与本改动无关的若干失败（归档测试与指纹属性用例）；环境面板相关初始化与事件绑定正常。
+## 已实施改动（翻译设置面板拆分）
+- 模块化目录
+  - 新增 `src/single-window/renderer/translate-settings/` 目录：
+    - `state.js` 默认配置与状态容器。
+    - `render.js` 渲染表单与折叠区块。
+    - `engine.js` 引擎配置加载/保存与测试。
+    - `friends.js` 好友独立配置加载/保存与管理视图。
+    - `stats.js` 使用统计加载与展示。
+    - `index.js` 面板实例入口与统一 API（`window.TranslateSettingsPanel`）。
+- 接入与兼容
+  - `src/single-window/renderer/app.html:105–119` 替换原 `translateSettingsPanel.js` 为上述子模块脚本，保持加载顺序在 `translatePanelLayout.js` 之前。
+  - `src/single-window/renderer/translatePanelLayout.js:24–30,33–58` 仍通过 `new TranslateSettingsPanel(...)` 初始化；为兼容 `app.js` 的监听，增加 `window.translateSettingsPanel` 引用（`src/single-window/renderer/translatePanelLayout.js:24–30`）。
+- 效果与规模
+  - 原 1200+ 行超大文件拆分为 6 个子模块，降低耦合，提高可测试性与后续扩展能力。
+- 验证
+  - Lint：`npm run lint` 通过（0 错误）。
+  - 测试：`npm test` 存在与指纹/归档用例相关的既有失败，翻译面板功能未见回归；后续按路线图继续修复非本次改动相关用例。
 ## 权重配置与 CI 建议
 - 指纹权重配置入口（环境变量）
   - `FP_WEIGHTS_JSON`：直接提供 JSON 字符串。

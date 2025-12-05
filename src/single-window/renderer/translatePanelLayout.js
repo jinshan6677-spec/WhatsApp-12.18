@@ -28,6 +28,7 @@
     getActiveChatInfo: fetchActiveChatInfo,
     applyConfigToView
   });
+  window.translateSettingsPanel = translateSettingsPanel;
 
   init();
 
