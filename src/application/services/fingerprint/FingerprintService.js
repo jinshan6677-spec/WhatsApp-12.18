@@ -38,15 +38,15 @@ class FingerprintService {
   constructor(options = {}) {
     this._validator = options.validator || new FingerprintValidator();
     this._generator = options.generator || new FingerprintGenerator({ validator: this._validator });
-    this._templateManager = options.templateManager || new TemplateManager({ 
-      storagePath: options.templateStoragePath 
+    this._templateManager = options.templateManager || new TemplateManager({
+      storagePath: options.templateStoragePath
     });
     this._testRunner = options.testRunner || new FingerprintTestRunner();
     this._logger = options.logger || console.error.bind(console);
-    
+
     // Cache for loaded fingerprint configurations
     this._configCache = new Map();
-    
+
     // Initialization state
     this._initialized = false;
   }
@@ -92,12 +92,12 @@ class FingerprintService {
   generateFingerprint(options = {}) {
     try {
       const config = this._generator.generateFingerprint(options);
-      
+
       // Cache the configuration if accountId is provided
       if (options.accountId) {
         this._configCache.set(options.accountId, config);
       }
-      
+
       return config;
     } catch (error) {
       this._logError('Failed to generate fingerprint', error);
@@ -193,10 +193,10 @@ class FingerprintService {
    * @returns {FingerprintConfig} The cached configuration
    */
   setFingerprint(accountId, config) {
-    const fpConfig = config instanceof FingerprintConfig 
-      ? config 
+    const fpConfig = config instanceof FingerprintConfig
+      ? config
       : new FingerprintConfig({ ...config, accountId });
-    
+
     this._configCache.set(accountId, fpConfig);
     return fpConfig;
   }
@@ -219,10 +219,10 @@ class FingerprintService {
 
     try {
       config.update(updates);
-      
+
       // Ensure consistency after update
       this._generator.ensureConsistency(config);
-      
+
       return config;
     } catch (error) {
       this._logError(`Failed to update fingerprint for account ${accountId}`, error);
@@ -251,13 +251,13 @@ class FingerprintService {
    */
   loadFingerprints(accounts) {
     const loaded = new Map();
-    
+
     for (const { accountId, config } of accounts) {
       try {
         const fpConfig = config instanceof FingerprintConfig
           ? config
           : new FingerprintConfig({ ...config, accountId });
-        
+
         this._configCache.set(accountId, fpConfig);
         loaded.set(accountId, fpConfig);
       } catch (error) {
@@ -267,7 +267,7 @@ class FingerprintService {
         loaded.set(accountId, defaultConfig);
       }
     }
-    
+
     return loaded;
   }
 
@@ -285,6 +285,46 @@ class FingerprintService {
    */
   clearCache() {
     this._configCache.clear();
+  }
+
+  /**
+   * Disables fingerprint protection for an account and clears all related data
+   * 
+   * This method:
+   * - Clears cached fingerprint configuration
+   * - Records the disable operation in logs
+   * 
+   * @param {string} accountId - Account ID
+   * @returns {{success: boolean, cleared: boolean, message: string}} Result
+   */
+  disableFingerprint(accountId) {
+    try {
+      if (!accountId) {
+        return {
+          success: false,
+          cleared: false,
+          message: 'Account ID is required'
+        };
+      }
+
+      // Remove from cache
+      const wasInCache = this._configCache.delete(accountId);
+
+      console.log(`[FingerprintService] Fingerprint disabled for account ${accountId}. Cache cleared: ${wasInCache}`);
+
+      return {
+        success: true,
+        cleared: wasInCache,
+        message: `Fingerprint authentication disabled for account ${accountId}`
+      };
+    } catch (error) {
+      this._logError(`Failed to disable fingerprint for account ${accountId}`, error);
+      return {
+        success: false,
+        cleared: false,
+        message: error.message
+      };
+    }
   }
 
   // ==================== Template Methods ====================

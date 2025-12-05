@@ -1,24 +1,45 @@
-;(function(){
+; (function () {
   'use strict';
   const state = window.EnvSettingsState;
-  function container(){ return state.container; }
+  function container() { return state.container; }
 
-  async function loadFingerprintConfig(accountId){
+  async function loadFingerprintConfig(accountId) {
     if (!window.electronAPI) return;
     try {
       const result = await window.electronAPI.getFingerprint(accountId);
+      const fingerprintToggle = container().querySelector('#fingerprint-enabled');
+      const fingerprintContent = container().querySelector('#fingerprint-content');
+
       if (result.success && result.config) {
         state.currentFingerprintConfig = result.config;
+        state.fingerprintEnabled = true;
         populateFingerprintForm(result.config);
+
+        // 设置开关状态和内容可见性
+        if (fingerprintToggle) {
+          fingerprintToggle.checked = true;
+        }
+        if (fingerprintContent) {
+          fingerprintContent.classList.remove('disabled');
+        }
       } else {
         state.currentFingerprintConfig = null;
+        state.fingerprintEnabled = false;
+
+        // 新账号或没有指纹配置时，默认禁用
+        if (fingerprintToggle) {
+          fingerprintToggle.checked = false;
+        }
+        if (fingerprintContent) {
+          fingerprintContent.classList.add('disabled');
+        }
       }
     } catch (error) {
       console.error('[EnvironmentPanel] 加载指纹配置错误:', error);
     }
   }
 
-  async function loadFingerprintTemplates(){
+  async function loadFingerprintTemplates() {
     if (!window.electronAPI) return;
     try {
       const result = await window.electronAPI.listFingerprintTemplates();
@@ -38,7 +59,7 @@
     }
   }
 
-  function populateFingerprintForm(config){
+  function populateFingerprintForm(config) {
     if (!config) return;
     container().querySelector('#fp-browser-type').value = config.browser?.type || 'chrome';
     container().querySelector('#fp-browser-version').value = config.browser?.version || '120.0.0.0';
@@ -87,7 +108,7 @@
     container().querySelector('#fp-webrtc-mode').dispatchEvent(new Event('change'));
   }
 
-  function collectFingerprintFormData(){
+  function collectFingerprintFormData() {
     const languagesStr = container().querySelector('#fp-languages').value;
     const languages = languagesStr.split(',').map(l => l.trim()).filter(l => l);
     return {
@@ -110,7 +131,7 @@
       hardware: {
         cpuCores: parseInt(container().querySelector('#fp-cpu-cores').value) || 8,
         deviceMemory: parseInt(container().querySelector('#fp-device-memory').value) || 8,
-        screen: (function(){
+        screen: (function () {
           const width = parseInt(container().querySelector('#fp-screen-width').value) || 1920;
           const height = parseInt(container().querySelector('#fp-screen-height').value) || 1080;
           return { width: width, height: height, availWidth: width, availHeight: height - 40, colorDepth: parseInt(container().querySelector('#fp-color-depth').value) || 24, pixelDepth: parseInt(container().querySelector('#fp-color-depth').value) || 24 };
@@ -133,7 +154,7 @@
     };
   }
 
-  async function generateFingerprint(){
+  async function generateFingerprint() {
     if (!window.electronAPI) return;
     showFingerprintLoading('正在生成指纹配置...');
     try {
@@ -150,7 +171,7 @@
     }
   }
 
-  async function testFingerprint(){
+  async function testFingerprint() {
     if (!window.electronAPI) return;
     showFingerprintLoading('正在测试指纹配置...');
     try {
@@ -169,7 +190,7 @@
           '<p><strong>通过:</strong> ' + report.summary.passed + ' / ' + report.summary.total + '</p>' +
           '<p><strong>失败:</strong> ' + report.summary.failed + '</p>' +
           failedDetails +
-          '</div>'; 
+          '</div>';
         showFingerprintResult(html);
       } else { showFingerprintError('测试失败: ' + (result.error || '未知错误')); }
     } catch (error) {
@@ -178,7 +199,7 @@
     }
   }
 
-  async function previewFingerprint(){
+  async function previewFingerprint() {
     if (!window.electronAPI) return;
     showFingerprintLoading('正在生成预览...');
     try {
@@ -232,7 +253,7 @@
     }
   }
 
-  function resetFingerprint(){
+  function resetFingerprint() {
     const defaultConfig = {
       browser: { type: 'chrome', version: '120.0.0.0', majorVersion: 120 },
       os: { type: 'windows', version: '10.0', platform: 'Win32' },
@@ -257,7 +278,7 @@
     showFingerprintSuccess('已重置为默认配置');
   }
 
-  async function applyTemplate(){
+  async function applyTemplate() {
     if (!window.electronAPI) return;
     const templateId = container().querySelector('#fingerprint-template-select').value;
     if (!templateId) { showFingerprintError('请先选择一个模板'); return; }
@@ -271,8 +292,8 @@
         showFingerprintSuccess('模板已应用！');
         try {
           const recreateResult = await window.electronAPI.recreateView(state.currentAccountId);
-          if (!recreateResult.success) {}
-        } catch (e) {}
+          if (!recreateResult.success) { }
+        } catch (e) { }
       } else { showFingerprintError('应用模板失败: ' + (result.error || '未知错误')); }
     } catch (error) {
       console.error('[EnvironmentPanel] 应用模板失败:', error);
@@ -280,7 +301,7 @@
     }
   }
 
-  async function saveAsTemplate(){
+  async function saveAsTemplate() {
     if (!window.electronAPI) return;
     showInlineInput('请输入模板名称:', async (name) => {
       if (!name || name.trim() === '') return;
@@ -293,7 +314,7 @@
     });
   }
 
-  async function exportTemplate(){
+  async function exportTemplate() {
     if (!window.electronAPI) return;
     const templateId = container().querySelector('#fingerprint-template-select').value;
     if (!templateId) {
@@ -310,7 +331,7 @@
     } catch (error) { console.error('[EnvironmentPanel] 导出模板失败:', error); showFingerprintError('导出模板失败: ' + error.message); }
   }
 
-  function importTemplate(){
+  function importTemplate() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
@@ -327,20 +348,20 @@
     input.click();
   }
 
-  function downloadJSON(jsonStr, filename){
+  function downloadJSON(jsonStr, filename) {
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  function showInlineInput(message, callback){
+  function showInlineInput(message, callback) {
     const buttonsGroup = container().querySelector('.env-panel-footer');
     const originalDisplay = buttonsGroup.style.display;
     buttonsGroup.style.display = 'none';
     const inputContainer = document.createElement('div');
     inputContainer.style.cssText = 'padding: 15px; background: #f0f8ff; border: 2px solid #1890ff; border-radius: 8px; margin: 15px;';
-    inputContainer.innerHTML = 
+    inputContainer.innerHTML =
       '<div style="margin-bottom: 10px; font-weight: bold; color: #1890ff;">' + message + '</div>' +
       '<input type="text" id="inline-input" style="width: 100%; padding: 8px; border: 1px solid #1890ff; border-radius: 4px; font-size: 14px; box-sizing: border-box; margin-bottom: 10px;">' +
       '<div style="text-align: right;">' +
@@ -364,12 +385,12 @@
   function showFingerprintResult(html) {
     const resultBox = container().querySelector('#fingerprint-result');
     const resultWrapper = container().querySelector('#fingerprint-result-wrapper');
-    
+
     if (resultBox) {
       resultBox.innerHTML = html;
       resultBox.classList.remove('hidden');
     }
-    
+
     if (resultWrapper) {
       resultWrapper.classList.remove('hidden');
       resultWrapper.classList.add('visible');

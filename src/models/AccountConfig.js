@@ -55,6 +55,7 @@ function uuidv4() {
  * @property {Date} lastActiveAt - 最后活跃时间
  * @property {boolean} autoStart - 是否自动启动
  * @property {boolean} keepAlive - 是否保持运行（应用关闭时记住状态）
+ * @property {boolean} fingerprintEnabled - 是否启用指纹保护（默认禁用）
  * @property {string|null} lastRunningStatus - 最后运行状态（'not-started'|'loading'|'connected'|'error'|null）
  * @property {TranslationConfig} translation - 翻译配置
  * @property {NotificationConfig} notifications - 通知配置
@@ -84,6 +85,8 @@ class AccountConfig {
     this.lastActiveAt = config.lastActiveAt ? new Date(config.lastActiveAt) : new Date();
     this.autoStart = config.autoStart !== undefined ? config.autoStart : false;
     this.keepAlive = config.keepAlive !== undefined ? config.keepAlive : true;
+    // 指纹保护默认禁用
+    this.fingerprintEnabled = config.fingerprintEnabled !== undefined ? config.fingerprintEnabled : false;
     this.lastRunningStatus = config.lastRunningStatus || null;
 
     // 会话数据目录路径 - 确保使用正确的账号ID和实际存储路径
@@ -146,6 +149,7 @@ class AccountConfig {
       lastActiveAt: lastActiveAt.toISOString(),
       autoStart: this.autoStart,
       keepAlive: this.keepAlive,
+      fingerprintEnabled: this.fingerprintEnabled,
       lastRunningStatus: this.lastRunningStatus,
       sessionDir: this.sessionDir,
       translation: this.translation,

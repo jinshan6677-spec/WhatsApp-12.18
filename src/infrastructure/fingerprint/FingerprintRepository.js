@@ -101,17 +101,17 @@ class FingerprintRepository {
       const data = await fs.readFile(this.filePath, 'utf-8');
       const parsed = JSON.parse(data);
       const fingerprints = new Map();
-      
+
       // Handle both array and object formats
       const items = parsed.fingerprints || parsed;
       const itemsArray = Array.isArray(items) ? items : Object.values(items);
-      
+
       for (const item of itemsArray) {
         if (item && item.id) {
           fingerprints.set(item.id, item);
         }
       }
-      
+
       this._cache = fingerprints;
       this._cacheTime = Date.now();
       return fingerprints;
@@ -136,15 +136,15 @@ class FingerprintRepository {
     try {
       // Ensure directory exists
       await fs.mkdir(this.storagePath, { recursive: true });
-      
+
       const data = {
         version: '1.0.0',
         updatedAt: new Date().toISOString(),
         fingerprints: Array.from(fingerprints.values())
       };
-      
+
       await fs.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf-8');
-      
+
       // Update cache
       this._cache = fingerprints;
       this._cacheTime = Date.now();
@@ -169,12 +169,12 @@ class FingerprintRepository {
    */
   _encryptSeed(config) {
     const configData = config.toJSON();
-    
+
     // If seed is not already encrypted, encrypt it
     if (configData.noiseSeed && !configData.noiseSeed.encrypted) {
       const seedValue = configData.noiseSeed.value;
       const accountId = configData.accountId || configData.id;
-      
+
       if (typeof seedValue === 'number') {
         const encryptedSeed = this.seedManager.encryptSeed(seedValue, accountId);
         configData.noiseSeed = {
@@ -183,7 +183,7 @@ class FingerprintRepository {
         };
       }
     }
-    
+
     return configData;
   }
 
@@ -195,7 +195,7 @@ class FingerprintRepository {
    */
   _decryptSeed(storedData) {
     const configData = { ...storedData };
-    
+
     // If seed is encrypted, decrypt it
     if (configData.noiseSeed && configData.noiseSeed.encrypted) {
       try {
@@ -214,7 +214,7 @@ class FingerprintRepository {
         };
       }
     }
-    
+
     return configData;
   }
 
@@ -248,13 +248,13 @@ class FingerprintRepository {
         fingerprints.delete(id);
       }
     }
-    
+
     // Encrypt seed before storing
     const configData = this._encryptSeed(config);
-    
+
     fingerprints.set(config.id, configData);
     await this._save(fingerprints);
-    
+
     return config;
   }
 
@@ -275,14 +275,14 @@ class FingerprintRepository {
 
     const fingerprints = await this._load();
     const storedData = fingerprints.get(id);
-    
+
     if (!storedData) {
       return null;
     }
-    
+
     // Decrypt seed before returning
     const configData = this._decryptSeed(storedData);
-    
+
     return FingerprintConfig.fromJSON(configData);
   }
 
@@ -320,12 +320,12 @@ class FingerprintRepository {
   async loadAll() {
     const fingerprints = await this._load();
     const configs = [];
-    
+
     for (const storedData of fingerprints.values()) {
       const configData = this._decryptSeed(storedData);
       configs.push(FingerprintConfig.fromJSON(configData));
     }
-    
+
     return configs;
   }
 
@@ -344,12 +344,12 @@ class FingerprintRepository {
 
     const fingerprints = await this._load();
     const existed = fingerprints.has(id);
-    
+
     if (existed) {
       fingerprints.delete(id);
       await this._save(fingerprints);
     }
-    
+
     return existed;
   }
 
@@ -368,7 +368,7 @@ class FingerprintRepository {
 
     const fingerprints = await this._load();
     let deleted = false;
-    
+
     for (const [id, storedData] of fingerprints.entries()) {
       if (storedData.accountId === accountId) {
         fingerprints.delete(id);
@@ -376,11 +376,11 @@ class FingerprintRepository {
         break;
       }
     }
-    
+
     if (deleted) {
       await this._save(fingerprints);
     }
-    
+
     return deleted;
   }
 
@@ -401,13 +401,13 @@ class FingerprintRepository {
    */
   async existsByAccountId(accountId) {
     const fingerprints = await this._load();
-    
+
     for (const storedData of fingerprints.values()) {
       if (storedData.accountId === accountId) {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -429,6 +429,47 @@ class FingerprintRepository {
   }
 
   /**
+   * Clears all fingerprint data for an account
+   * This includes stored configurations and encrypted seeds
+   * 
+   * @param {string} accountId - Account ID
+   * @returns {Promise<{success: boolean, deleted: boolean, message: string}>}
+   */
+  async clearAllAccountData(accountId) {
+    try {
+      if (!accountId) {
+        return {
+          success: false,
+          deleted: false,
+          message: 'Account ID is required'
+        };
+      }
+
+      const deleted = await this.deleteByAccountId(accountId);
+
+      // Invalidate cache to ensure fresh data on next read
+      this.invalidateCache();
+
+      console.log(`[FingerprintRepository] Cleared all fingerprint data for account ${accountId}. Data existed: ${deleted}`);
+
+      return {
+        success: true,
+        deleted,
+        message: deleted
+          ? 'All fingerprint data cleared successfully'
+          : 'No fingerprint data found to clear'
+      };
+    } catch (error) {
+      console.error(`[FingerprintRepository] Failed to clear data for account ${accountId}:`, error);
+      return {
+        success: false,
+        deleted: false,
+        message: error.message
+      };
+    }
+  }
+
+  /**
    * Updates a fingerprint configuration
    * @param {string} id - Fingerprint configuration ID
    * @param {Object} updates - Partial configuration updates
@@ -436,7 +477,7 @@ class FingerprintRepository {
    */
   async update(id, updates) {
     const existing = await this.load(id);
-    
+
     if (!existing) {
       throw FingerprintRepositoryError.notFound(id);
     }
@@ -463,17 +504,17 @@ class FingerprintRepository {
    */
   async rotateSeed(id, options = {}) {
     const config = await this.load(id);
-    
+
     if (!config) {
       throw FingerprintRepositoryError.notFound(id);
     }
 
     const accountId = config.accountId || config.id;
     const oldSeed = config.noiseSeed.value;
-    
+
     // Rotate seed using SeedManager
     const rotationResult = this.seedManager.rotateSeed(accountId, oldSeed, options);
-    
+
     // Update config with new seed
     config.update({
       noiseSeed: {
@@ -497,13 +538,13 @@ class FingerprintRepository {
    */
   async export(id, options = {}) {
     const config = await this.load(id);
-    
+
     if (!config) {
       throw FingerprintRepositoryError.notFound(id);
     }
 
     const configData = config.toJSON();
-    
+
     if (!options.includeSeed) {
       // Remove seed data for export
       configData.noiseSeed = {
@@ -511,7 +552,7 @@ class FingerprintRepository {
         includedSeed: false
       };
     }
-    
+
     return {
       ...configData,
       exportedAt: new Date().toISOString(),
@@ -535,15 +576,15 @@ class FingerprintRepository {
 
     // Create new config from exported data
     const configData = { ...exportedData };
-    
+
     // Generate new ID for imported config
     configData.id = require('crypto').randomUUID();
-    
+
     // Set account ID if provided
     if (accountId) {
       configData.accountId = accountId;
     }
-    
+
     // Handle seed
     if (!configData.noiseSeed || !configData.noiseSeed.value) {
       // Generate new seed if not included
@@ -552,17 +593,17 @@ class FingerprintRepository {
         value: this.seedManager.generateSecureSeed()
       };
     }
-    
+
     // Reset timestamps
     configData.createdAt = new Date().toISOString();
     configData.updatedAt = new Date().toISOString();
-    
+
     // Remove export metadata
     delete configData.exportedAt;
     delete configData.exportVersion;
-    
+
     const config = FingerprintConfig.fromJSON(configData);
-    
+
     return this.save(config);
   }
 }

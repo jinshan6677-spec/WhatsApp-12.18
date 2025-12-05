@@ -5,6 +5,7 @@ const createFingerprintAPI = (ipcRenderer) => ({
   validateFingerprint: (config) => ipcRenderer.invoke('fingerprint:validate', config),
   applyFingerprint: (accountId, options = {}) => ipcRenderer.invoke('fingerprint:apply', accountId, options),
   deleteFingerprint: (accountId) => ipcRenderer.invoke('fingerprint:delete', accountId),
+  disableFingerprint: (accountId) => ipcRenderer.invoke('fingerprint:disable', accountId),
   updateFingerprint: (accountId) => ipcRenderer.invoke('fingerprint:update', accountId),
   previewFingerprint: (config) => ipcRenderer.invoke('fingerprint:preview', config),
   getFingerprintScript: (config, options = {}) => ipcRenderer.invoke('fingerprint:getScript', config, options),

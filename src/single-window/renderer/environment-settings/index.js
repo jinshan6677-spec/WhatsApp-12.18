@@ -1,8 +1,8 @@
-;(function(){
+; (function () {
   'use strict';
   const state = window.EnvSettingsState || (window.EnvSettingsState = { currentAccountId: null, currentConfig: null, currentFingerprintConfig: null, savedProxyConfigs: {}, savedFingerprintTemplates: [], container: null });
 
-  async function init(){
+  async function init() {
     const host = document.getElementById('environment-settings-host');
     if (!host) return;
     state.container = host;
@@ -17,17 +17,39 @@
       } else {
         await setAccount(null);
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
-  function setupEventListeners(){
+  function setupEventListeners() {
     const c = state.container;
     const proxyEnabled = c.querySelector('#proxy-enabled');
     const proxyContent = c.querySelector('#proxy-content');
     proxyEnabled.addEventListener('change', (e) => { proxyContent.classList.toggle('disabled', !e.target.checked); });
     const fingerprintEnabled = c.querySelector('#fingerprint-enabled');
     const fingerprintContent = c.querySelector('#fingerprint-content');
-    fingerprintEnabled.addEventListener('change', (e) => { fingerprintContent.classList.toggle('disabled', !e.target.checked); });
+    fingerprintEnabled.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      fingerprintContent.classList.toggle('disabled', !enabled);
+
+      // 当禁用时，清除所有指纹数据
+      if (!enabled && state.currentAccountId) {
+        try {
+          const result = await window.electronAPI.disableFingerprint(state.currentAccountId);
+          if (result.success) {
+            console.log('[EnvironmentPanel] Fingerprint disabled and data cleared:', result);
+            // 清除当前的指纹配置状态
+            state.currentFingerprintConfig = null;
+            window.FingerprintSettings.showFingerprintSuccess('指纹认证已禁用，所有指纹数据已清除');
+          } else {
+            console.error('[EnvironmentPanel] Failed to disable fingerprint:', result.error);
+            window.FingerprintSettings.showFingerprintError('禁用指纹失败: ' + result.error);
+          }
+        } catch (error) {
+          console.error('[EnvironmentPanel] Error disabling fingerprint:', error);
+          window.FingerprintSettings.showFingerprintError('禁用指纹失败: ' + error.message);
+        }
+      }
+    });
     c.querySelector('#proxy-select').addEventListener('change', window.ProxySettings.handleProxySelect);
     c.querySelector('#refresh-proxy-list').addEventListener('click', window.ProxySettings.loadProxyConfigs);
     c.querySelector('#delete-proxy-btn').addEventListener('click', window.ProxySettings.deleteProxyConfig);
@@ -61,7 +83,7 @@
     });
   }
 
-  async function setAccount(accountId){
+  async function setAccount(accountId) {
     state.currentAccountId = accountId || null;
     if (!accountId) return;
     await window.ProxySettings.loadAccountConfig(accountId);
@@ -70,7 +92,7 @@
     await window.FingerprintSettings.loadFingerprintTemplates();
   }
 
-  async function applyConfig(){
+  async function applyConfig() {
     if (!window.electronAPI) {
       window.FingerprintSettings.showFingerprintError('系统错误: electronAPI 不可用');
       return;
@@ -109,7 +131,7 @@
           if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = '应用并保存'; }
           return;
         }
-      } catch (error) {}
+      } catch (error) { }
       try {
         const fpResult = await window.electronAPI.saveFingerprint(state.currentAccountId, fingerprintConfig);
         if (!fpResult.success) {
@@ -126,8 +148,8 @@
     }
     try {
       const recreateResult = await window.electronAPI.recreateView(state.currentAccountId);
-      if (!recreateResult.success) {}
-    } catch (e) {}
+      if (!recreateResult.success) { }
+    } catch (e) { }
     window.FingerprintSettings.showFingerprintSuccess('配置已保存成功！已重建视图并应用新的环境设置。');
     if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = '应用并保存'; }
   }

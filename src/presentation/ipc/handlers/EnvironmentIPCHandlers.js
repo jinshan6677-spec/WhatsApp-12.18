@@ -388,6 +388,43 @@ function register(dependencies) {
         }
     });
 
+    // Disable fingerprint authentication and clear all data
+    ipcMain.handle('fingerprint:disable', async (event, accountId) => {
+        try {
+            if (!accountId) {
+                return { success: false, error: 'Account ID is required' };
+            }
+
+            const repository = getFingerprintRepository();
+            const service = getFingerprintService();
+
+            // Clear from repository (persistent storage)
+            const repoResult = await repository.clearAllAccountData(accountId);
+
+            // Clear from service cache
+            const serviceResult = service.disableFingerprint(accountId);
+
+            // Log the operation
+            console.log(`[EnvironmentIPCHandlers] Fingerprint disabled for account ${accountId}:`, {
+                repositoryCleared: repoResult.deleted,
+                cacheCleared: serviceResult.cleared
+            });
+
+            return {
+                success: true,
+                repositoryCleared: repoResult.deleted,
+                cacheCleared: serviceResult.cleared,
+                message: 'Fingerprint authentication disabled and all data cleared'
+            };
+        } catch (error) {
+            console.error('[EnvironmentIPCHandlers] fingerprint:disable error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    });
+
     // ==================== Template Handlers ====================
 
     // Create a fingerprint template

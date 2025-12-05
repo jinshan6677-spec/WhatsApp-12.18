@@ -159,13 +159,19 @@ class ViewFactory {
         (config.fingerprint.navigator && config.fingerprint.navigator.languages) ||
         (config.fingerprint.language && config.fingerprint.language.list)
       )) || [];
+
+      // 使用系统语言作为默认值，而不是硬编码 'en-US'
+      const { app } = require('electron');
+      const systemLocale = app.getLocale() || 'zh-CN';
+
       const primary = (config.fingerprint && (
         (config.fingerprint.navigator && config.fingerprint.navigator.language) ||
         (config.fingerprint.language && config.fingerprint.language.primary)
-      )) || (langs[0] || 'en-US');
+      )) || (langs[0] || systemLocale);
+
       const uniq = [];
       for (const l of [primary, ...langs]) { if (l && !uniq.includes(l)) uniq.push(l); }
-      const parts = uniq.map((l, i) => i === 0 ? l : `${l};q=${Math.max(0.1, (0.9 - i*0.1)).toFixed(1)}`);
+      const parts = uniq.map((l, i) => i === 0 ? l : `${l};q=${Math.max(0.1, (0.9 - i * 0.1)).toFixed(1)}`);
       return parts.join(', ');
     };
     const acceptLanguage = buildAcceptLanguage();
@@ -177,7 +183,7 @@ class ViewFactory {
         headers['Accept-Language'] = acceptLanguage;
         callback({ requestHeaders: headers });
       });
-    } catch (_) {}
+    } catch (_) { }
 
     if (
       config.proxy &&
@@ -220,7 +226,7 @@ class ViewFactory {
           }
           try {
             await view.webContents.executeJavaScript(`(async()=>{try{if(location&&/web\\.whatsapp\\.com$/i.test(location.hostname)){const regs=await navigator.serviceWorker.getRegistrations();regs.forEach(r=>r.unregister());}}catch(e){}})();`, true);
-          } catch(e) {
+          } catch (e) {
             this.log('debug', `SW unregister script skipped for ${accountId}`);
           }
           view.webContents.reloadIgnoringCache();
@@ -281,7 +287,7 @@ class ViewFactory {
           })();`,
           true
         );
-      } catch (_) {}
+      } catch (_) { }
     });
 
     this.log('info', `BrowserView created for account ${accountId}`);
@@ -328,7 +334,7 @@ class ViewFactory {
    */
   async _injectFingerprint(view, accountId, fingerprintConfig) {
     const startTime = Date.now();
-    
+
     try {
       this.log('info', `Injecting fingerprint for account ${accountId}`);
 
@@ -347,7 +353,7 @@ class ViewFactory {
       }
 
       // Get the injection script
-      const essentialModules = ['navigator','browserBehavior','webgl','canvas','fonts','clientRects','timezone','geolocation','mediaDevices','webrtc','screen'];
+      const essentialModules = ['navigator', 'browserBehavior', 'webgl', 'canvas', 'fonts', 'clientRects', 'timezone', 'geolocation', 'mediaDevices', 'webrtc', 'screen'];
       const injectionScript = injector.getInjectionScript({ includeWorkerInterceptor: false, include: essentialModules });
       const generationTime = injector.getGenerationTime();
 
@@ -395,7 +401,7 @@ class ViewFactory {
       };
     } catch (error) {
       this.log('error', `Failed to inject fingerprint for ${accountId}:`, error);
-      
+
       // Continue without fingerprint injection - don't break the view creation
       // **Validates: Requirement 24.5** - Log error and continue with default browser behavior
       return {
@@ -431,7 +437,7 @@ class ViewFactory {
       });
 
       // Get the injection script
-      const essentialModules = ['navigator','webgl','canvas','fonts','clientRects','timezone','geolocation','mediaDevices','webrtc','screen'];
+      const essentialModules = ['navigator', 'webgl', 'canvas', 'fonts', 'clientRects', 'timezone', 'geolocation', 'mediaDevices', 'webrtc', 'screen'];
       const injectionScript = injector.getInjectionScript({ includeWorkerInterceptor: false, include: essentialModules });
 
       // Execute the updated script immediately
