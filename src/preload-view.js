@@ -248,6 +248,36 @@ async function injectScript(scriptPath, scriptId) {
   }
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function tryInjectScript(scriptPath, scriptId, retries = 2, delayMs = 500) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      await injectScript(scriptPath, scriptId);
+      return true;
+    } catch (e) {
+      if (attempt < retries) {
+        await sleep(delayMs * Math.pow(2, attempt));
+        continue;
+      }
+      console.warn(`[Preload-View] Inject retry exhausted: ${scriptId}`);
+      return false;
+    }
+  }
+}
+
+async function checkTranslationAvailable() {
+  try {
+    const { webFrame } = require('electron');
+    const available = await webFrame.executeJavaScript('typeof window.WhatsAppTranslation !== "undefined"');
+    return Boolean(available);
+  } catch (_) {
+    return false;
+  }
+}
+
 // Load and inject translation scripts when DOM is ready
 window.addEventListener('DOMContentLoaded', async () => {
   console.log('[Preload-View] DOMContentLoaded, injecting modular translation scripts');
@@ -282,20 +312,22 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     console.log(`[Preload-View] Injecting ${modules.length} core translation modules...`);
 
-    // Inject core modules in order
+    // Inject core modules in order with retry
     for (const module of modules) {
       const modulePath = path.join(modulesDir, module.file);
-      await injectScript(modulePath, module.id);
+      const ok = await tryInjectScript(modulePath, module.id, 2, 500);
+      if (!ok) {
+        console.warn(`[Preload-View] Core module failed: ${module.id}`);
+      }
     }
 
     // Inject voice translation modules
     console.log(`[Preload-View] Injecting ${voiceModules.length} voice translation modules...`);
     for (const module of voiceModules) {
       const modulePath = path.join(voiceTranslationDir, module.file);
-      try {
-        await injectScript(modulePath, module.id);
-      } catch (error) {
-        console.warn(`[Preload-View] Failed to inject ${module.id}:`, error.message);
+      const ok = await tryInjectScript(modulePath, module.id, 1, 700);
+      if (!ok) {
+        console.warn(`[Preload-View] Failed to inject ${module.id}`);
       }
     }
 
@@ -303,16 +335,15 @@ window.addEventListener('DOMContentLoaded', async () => {
     console.log(`[Preload-View] Injecting voice message translator...`);
     for (const module of voiceContentScript) {
       const modulePath = path.join(modulesDir, module.file);
-      try {
-        await injectScript(modulePath, module.id);
-      } catch (error) {
-        console.warn(`[Preload-View] Failed to inject ${module.id}:`, error.message);
+      const ok = await tryInjectScript(modulePath, module.id, 1, 700);
+      if (!ok) {
+        console.warn(`[Preload-View] Failed to inject ${module.id}`);
       }
     }
 
     // Finally inject main index.js
     const mainModulePath = path.join(modulesDir, 'index.js');
-    await injectScript(mainModulePath, 'translation-main');
+    await tryInjectScript(mainModulePath, 'translation-main', 2, 500);
 
     console.log('[Preload-View] ✓ All translation modules injected');
 
@@ -327,24 +358,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         (function() {
           if (typeof window.WhatsAppTranslation !== 'undefined') {
             console.log('[Preload-View] ✓ WhatsAppTranslation is available in main world');
-            
+
             // Set account ID
             window.WhatsAppTranslation.accountId = '${accountId}';
             if (window.WhatsAppTranslation.core) {
               window.WhatsAppTranslation.core.accountId = '${accountId}';
             }
-            
+
             // Expose voice translation modules globally
             if (typeof VoiceTranslationModule !== 'undefined') {
               window.VoiceTranslationModule = VoiceTranslationModule;
               console.log('[Preload-View] ✓ VoiceTranslationModule exposed globally');
             }
-            
+
             if (typeof VoiceMessageTranslator !== 'undefined') {
               window.VoiceMessageTranslator = VoiceMessageTranslator;
               console.log('[Preload-View] ✓ VoiceMessageTranslator exposed globally');
             }
-            
+
             console.log('[Preload-View] ✓ Translation system ready with account: ${accountId}');
           } else {
             console.error('[Preload-View] ✗ WhatsAppTranslation is not available in main world');
@@ -355,8 +386,45 @@ window.addEventListener('DOMContentLoaded', async () => {
       (document.head || document.documentElement).appendChild(configScript);
     }, 500);
 
+    setTimeout(async () => {
+      const healthy = await checkTranslationAvailable();
+      if (!healthy) {
+        console.warn('[Preload-View] Translation not available, attempting minimal fallback');
+        const minimal = [
+          { file: 'ContentScriptCore.js', id: 'translation-core' },
+          { file: 'MessageTranslator.js', id: 'translation-message' },
+          { file: 'InputBoxTranslator.js', id: 'translation-inputbox' },
+          { file: 'DOMObserver.js', id: 'translation-observer' }
+        ];
+        for (const m of minimal) {
+          const p = path.join(modulesDir, m.file);
+          await tryInjectScript(p, m.id, 2, 500);
+        }
+        const idx = path.join(modulesDir, 'index.js');
+        await tryInjectScript(idx, 'translation-main', 2, 500);
+      }
+    }, 1500);
+
   } catch (error) {
     console.error('[Preload-View] Failed to inject translation scripts:', error);
+    try {
+      const modulesDir = path.join(__dirname, 'presentation/translation/content-script');
+      console.warn('[Preload-View] Attempting minimal fallback injection');
+      const minimal = [
+        { file: 'ContentScriptCore.js', id: 'translation-core' },
+        { file: 'MessageTranslator.js', id: 'translation-message' },
+        { file: 'InputBoxTranslator.js', id: 'translation-inputbox' },
+        { file: 'DOMObserver.js', id: 'translation-observer' }
+      ];
+      for (const m of minimal) {
+        const p = path.join(modulesDir, m.file);
+        await tryInjectScript(p, m.id, 2, 500);
+      }
+      const idx = path.join(modulesDir, 'index.js');
+      await tryInjectScript(idx, 'translation-main', 2, 500);
+    } catch (e) {
+      console.error('[Preload-View] Fallback injection failed:', e);
+    }
   }
 });
 
