@@ -11,6 +11,8 @@ class InputBoxTranslator {
     this._realtimeInitialized = false;
     this._buttonMonitorInitialized = false;
     this.realtimeInputHandler = null;
+    this.realtimeFinalizeHandler = null;
+    this._realtimeDebounceTimer = null;
     this.buttonMonitor = null;
     this.buttonCheckInterval = null;
     this.messageSentObserver = null;
@@ -73,8 +75,13 @@ class InputBoxTranslator {
     const button = document.createElement('button');
     button.id = 'wa-translate-btn';
     button.className = 'wa-translate-btn';
-    button.innerHTML = '🌐';
-    button.title = '翻译';
+    // Material Design Translate Icon SVG
+    button.innerHTML = `
+      <svg viewBox="0 0 24 24" width="24" height="24" class="wa-translate-icon">
+        <path fill="currentColor" d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+      </svg>
+    `;
+    button.title = '翻译 (Translate)';
     button.type = 'button';
 
     button.onclick = async () => {
@@ -84,7 +91,8 @@ class InputBoxTranslator {
       }
 
       button.disabled = true;
-      button.innerHTML = '⏳';
+      button.classList.add('is-loading');
+      
       console.log('[Translation] Button clicked, starting translation');
 
       try {
@@ -93,48 +101,69 @@ class InputBoxTranslator {
         console.error('[Translation] Translation error:', error);
       } finally {
         button.disabled = false;
-        button.innerHTML = '🌐';
+        button.classList.remove('is-loading');
         console.log('[Translation] Button re-enabled');
       }
     };
 
-    // Add button styles - fixed position
+    // Add button styles - Circular FAB style matching user request
     button.style.cssText = `
       position: fixed;
-      bottom: 100px;
+      bottom: 120px;
       right: 20px;
-      padding: 8px;
-      background: rgba(102, 126, 234, 0.95);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #00a884; /* WhatsApp Green */
+      color: white;
       border: none;
       cursor: pointer;
-      font-size: 22px;
-      border-radius: 50%;
-      transition: all 0.2s;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      width: 48px;
-      height: 48px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 9999;
+      overflow: hidden;
     `;
 
-    button.onmouseenter = () => {
-      button.style.background = 'rgba(102, 126, 234, 1)';
-      button.style.transform = 'scale(1.15)';
-      button.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)';
-    };
+    // Add styles for loading animation and hover
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = `
+      .wa-translate-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 14px rgba(0, 168, 132, 0.4) !important;
+        background: #008f6f !important;
+      }
+      .wa-translate-btn:active {
+        transform: scale(0.95);
+      }
+      .wa-translate-btn.is-loading svg {
+        animation: spin 1s linear infinite;
+      }
+      .wa-translate-btn.is-loading path {
+        display: none; /* Hide translate icon */
+      }
+      .wa-translate-btn.is-loading::after {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ffffff;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(styleSheet);
 
-    button.onmouseleave = () => {
-      button.style.background = 'rgba(102, 126, 234, 0.95)';
-      button.style.transform = 'scale(1)';
-      button.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
-    };
-
-    // Add to body (fixed positioning, doesn't depend on footer)
+    // Add to body
     document.body.appendChild(button);
 
-    console.log('[Translation] Translate button added (floating position)');
+    console.log('[Translation] Translate button added (Circular Icon Design)');
   }
 
   /**
@@ -273,12 +302,6 @@ class InputBoxTranslator {
     console.log('[Translation] Translating input box text:', text);
 
     try {
-      const button = document.getElementById('wa-translate-btn');
-      if (button) {
-        button.innerHTML = '⏳';
-        button.disabled = true;
-      }
-
       // Get current contact ID
       const contactId = this.core.getCurrentContactId();
       console.log('[Translation] Input box translation for contact:', contactId);
@@ -819,7 +842,7 @@ class InputBoxTranslator {
 
     // Strategy 2: Listen for Enter key on input box (Capture phase)
     const enterKeyHandler = (event) => {
-      if (event.key === 'Enter' && !event.shiftKey && !event.ctrlKey && !event.altKey) {
+      if (event.key === 'Enter' && !event.shiftKey) {
         console.log('[Translation] Enter key detected (Capture phase)');
         // We don't clear immediately, we wait for the input to actually clear or a short timeout
         setTimeout(() => {
@@ -835,12 +858,8 @@ class InputBoxTranslator {
 
     const sendButtonHandler = (event) => {
       const target = event.target;
-      // Look for the send button (usually has specific icons or attributes)
-      // WhatsApp send button often contains a span with data-icon="send"
-      const sendButton = target.closest('[data-testid="send"], [aria-label="Send"], span[data-icon="send"]');
-
+      const sendButton = target.closest('[data-testid="send"], [data-testid="compose-btn-send"], button[aria-label*="发送"], button[aria-label*="Send"], div[aria-label*="发送"], div[aria-label*="Send"], span[data-icon="send"]');
       if (sendButton) {
-        console.log('[Translation] Send button click detected (Capture phase)');
         setTimeout(() => {
           this.handleMessageSent();
         }, 200);
@@ -849,7 +868,10 @@ class InputBoxTranslator {
 
     if (footer) {
       footer.addEventListener('click', sendButtonHandler, true);
+      footer.addEventListener('mousedown', sendButtonHandler, true);
     }
+    document.addEventListener('click', sendButtonHandler, true);
+    document.addEventListener('mousedown', sendButtonHandler, true);
 
     // Store cleanup function
     this.messageSentObserver = {
@@ -858,7 +880,10 @@ class InputBoxTranslator {
         inputBox.removeEventListener('keydown', enterKeyHandler, true);
         if (footer) {
           footer.removeEventListener('click', sendButtonHandler, true);
+          footer.removeEventListener('mousedown', sendButtonHandler, true);
         }
+        document.removeEventListener('click', sendButtonHandler, true);
+        document.removeEventListener('mousedown', sendButtonHandler, true);
       }
     };
   }
@@ -872,6 +897,12 @@ class InputBoxTranslator {
     // Clear realtime preview
     if (this.ui && this.ui.hideRealtimePreview) {
       this.ui.hideRealtimePreview();
+    }
+
+    // Cancel pending realtime debounce timer to prevent re-show after send
+    if (this._realtimeDebounceTimer) {
+      clearTimeout(this._realtimeDebounceTimer);
+      this._realtimeDebounceTimer = null;
     }
 
     // Remove reverse translation
@@ -905,8 +936,101 @@ class InputBoxTranslator {
 
     console.log('[Translation] Setting up realtime translation');
 
-    let debounceTimer = null;
+    this._realtimeDebounceTimer = null;
     let lastText = '';
+
+    const getCurrentInputBox = () => (
+      document.querySelector('#main footer [contenteditable="true"]') ||
+      document.querySelector('footer [contenteditable="true"]') ||
+      document.querySelector('[data-testid="conversation-compose-box-input"]')
+    );
+
+    const extractText = (el) => {
+      if (!el) return '';
+      let text = '';
+      if (el.hasAttribute('data-lexical-editor')) {
+        const nodes = el.querySelectorAll('p, span[data-text="true"]');
+        if (nodes.length > 0) {
+          text = Array.from(nodes).map(n => n.textContent).join('\n');
+        } else {
+          text = el.innerText || el.textContent || '';
+        }
+      } else {
+        text = el.textContent || el.innerText || '';
+      }
+      return (text || '').trim();
+    };
+
+    const isEffectivelyEmpty = (s) => {
+      if (!s) return true;
+      const cleaned = s.replace(/[\s\u00A0\u200B\u200C\u200D]+/g, '');
+      return cleaned.length === 0;
+    };
+
+    const performRealtimeTranslation = async (text) => {
+      try {
+        const contactId = this.core.getCurrentContactId();
+        const langSelector = document.getElementById('wa-lang-selector');
+        let targetLang = langSelector ? langSelector.value : null;
+
+        if (!targetLang || targetLang === 'auto') {
+          if (this.core.config.advanced.friendIndependent &&
+            contactId &&
+            this.core.config.friendConfigs &&
+            this.core.config.friendConfigs[contactId] &&
+            this.core.config.friendConfigs[contactId].enabled) {
+            targetLang = this.core.config.friendConfigs[contactId].targetLang || this.core.config.inputBox.targetLang || 'auto';
+          } else {
+            targetLang = this.core.config.inputBox.targetLang || 'auto';
+          }
+        }
+
+        if (targetLang === 'auto') {
+          targetLang = await this.detectChatLanguage();
+        }
+
+        if (!targetLang || targetLang === 'auto') {
+          targetLang = 'en';
+        }
+
+        const inputBoxEngine = this.core.config.inputBox.engine || this.core.config.global.engine;
+        const inputBoxStyle = this.core.config.inputBox.style || '通用';
+
+        const response = await window.translationAPI.translate({
+          accountId: this.core.accountId,
+          text: text,
+          sourceLang: 'auto',
+          targetLang: targetLang,
+          engineName: inputBoxEngine,
+          options: { style: inputBoxStyle }
+        });
+
+        if (response) {
+          let translatedText;
+          if (response.success !== undefined) {
+            if (response.success) {
+              translatedText = response.data.translatedText;
+            } else {
+              this.ui.showRealtimePreview('翻译失败: ' + response.error, false, true, text);
+              return;
+            }
+          } else if (response.translatedText) {
+            translatedText = response.translatedText;
+          }
+
+          if (translatedText) {
+            this.ui.showRealtimePreview(translatedText, false, false, text);
+          } else {
+            this.ui.showRealtimePreview('翻译失败: 无翻译结果', false, true, text);
+          }
+        } else {
+          this.ui.showRealtimePreview('翻译失败: 空响应', false, true, text);
+        }
+      } catch (error) {
+        console.error('[Translation] Realtime translation error:', error);
+        this.ui.showRealtimePreview('翻译失败: ' + error.message, false, true, text);
+      }
+    };
 
     // ALWAYS create new preview element (createRealtimePreview will remove old ones)
     this.ui.createRealtimePreview();
@@ -915,14 +1039,13 @@ class InputBoxTranslator {
     // Create input listener - DON'T capture inputBox in closure, always find it fresh
     this.realtimeInputHandler = () => {
       // Clear previous timer
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
+      if (this._realtimeDebounceTimer) {
+        clearTimeout(this._realtimeDebounceTimer);
+        this._realtimeDebounceTimer = null;
       }
 
       // Always find the current input box (important after chat switch)
-      const currentInputBox = document.querySelector('#main footer [contenteditable="true"]') ||
-        document.querySelector('footer [contenteditable="true"]') ||
-        document.querySelector('[data-testid="conversation-compose-box-input"]');
+      const currentInputBox = getCurrentInputBox();
 
       if (!currentInputBox) {
         console.warn('[Translation] Realtime: Input box not found');
@@ -930,22 +1053,10 @@ class InputBoxTranslator {
       }
 
       // Get current text
-      let text = '';
-      if (currentInputBox.hasAttribute('data-lexical-editor')) {
-        const textNodes = currentInputBox.querySelectorAll('p, span[data-text="true"]');
-        if (textNodes.length > 0) {
-          text = Array.from(textNodes).map(node => node.textContent).join('\n');
-        } else {
-          text = currentInputBox.innerText || currentInputBox.textContent || '';
-        }
-      } else {
-        text = currentInputBox.textContent || currentInputBox.innerText || '';
-      }
-
-      text = text.trim();
+      const text = extractText(currentInputBox);
 
       // If text is empty, hide preview
-      if (!text) {
+      if (isEffectivelyEmpty(text)) {
         this.ui.hideRealtimePreview();
         lastText = '';
         return;
@@ -962,85 +1073,31 @@ class InputBoxTranslator {
       this.ui.showRealtimePreview('翻译中...', true, false, text);
 
       // Execute translation after 200ms
-      debounceTimer = setTimeout(async () => {
-        try {
-          const contactId = this.core.getCurrentContactId();
-          const langSelector = document.getElementById('wa-lang-selector');
-          let targetLang = langSelector ? langSelector.value : null;
-
-          if (!targetLang || targetLang === 'auto') {
-            if (this.core.config.advanced.friendIndependent &&
-              contactId &&
-              this.core.config.friendConfigs &&
-              this.core.config.friendConfigs[contactId] &&
-              this.core.config.friendConfigs[contactId].enabled) {
-              targetLang = this.core.config.friendConfigs[contactId].targetLang || this.core.config.inputBox.targetLang || 'auto';
-            } else {
-              targetLang = this.core.config.inputBox.targetLang || 'auto';
-            }
-          }
-
-          if (targetLang === 'auto') {
-            targetLang = await this.detectChatLanguage();
-          }
-
-          if (!targetLang || targetLang === 'auto') {
-            targetLang = 'en';
-          }
-
-          const inputBoxEngine = this.core.config.inputBox.engine || this.core.config.global.engine;
-          const inputBoxStyle = this.core.config.inputBox.style || '通用';
-
-          const response = await window.translationAPI.translate({
-            accountId: this.core.accountId,
-            text: text,
-            sourceLang: 'auto',
-            targetLang: targetLang,
-            engineName: inputBoxEngine,
-            options: {
-              style: inputBoxStyle
-            }
-          });
-
-          // Handle both wrapped and direct response formats
-          if (response) {
-            let translatedText;
-            if (response.success !== undefined) {
-              // Wrapped response
-              if (response.success) {
-                translatedText = response.data.translatedText;
-              } else {
-                this.ui.showRealtimePreview('翻译失败: ' + response.error, false, true, text);
-                return;
-              }
-            } else if (response.translatedText) {
-              // Direct result object
-              translatedText = response.translatedText;
-            }
-
-            if (translatedText) {
-              this.ui.showRealtimePreview(translatedText, false, false, text);
-            } else {
-              this.ui.showRealtimePreview('翻译失败: 无翻译结果', false, true, text);
-            }
-          } else {
-            this.ui.showRealtimePreview('翻译失败: 空响应', false, true, text);
-          }
-        } catch (error) {
-          console.error('[Translation] Realtime translation error:', error);
-          this.ui.showRealtimePreview('翻译失败: ' + error.message, false, true, text);
-        }
+      this._realtimeDebounceTimer = setTimeout(async () => {
+        await performRealtimeTranslation(text);
       }, 200);
     };
 
     // Add listener to the current input box
     // Always find the current input box, don't use the passed parameter
-    const currentInputBox = document.querySelector('#main footer [contenteditable="true"]') ||
-      document.querySelector('footer [contenteditable="true"]') ||
-      document.querySelector('[data-testid="conversation-compose-box-input"]');
+    const currentInputBox = getCurrentInputBox();
 
     if (currentInputBox) {
       currentInputBox.addEventListener('input', this.realtimeInputHandler);
+      this.realtimeFinalizeHandler = async () => {
+        const box = getCurrentInputBox();
+        const text = extractText(box);
+        if (isEffectivelyEmpty(text)) return;
+        if (this._realtimeDebounceTimer) {
+          clearTimeout(this._realtimeDebounceTimer);
+          this._realtimeDebounceTimer = null;
+        }
+        lastText = text;
+        this.ui.showRealtimePreview('翻译中...', true, false, text);
+        await performRealtimeTranslation(text);
+      };
+      currentInputBox.addEventListener('compositionend', this.realtimeFinalizeHandler);
+      currentInputBox.addEventListener('blur', this.realtimeFinalizeHandler);
       console.log('[Translation] Realtime translation listener added to input box');
     } else {
       console.warn('[Translation] Could not find input box to attach realtime listener');
@@ -1065,6 +1122,20 @@ class InputBoxTranslator {
 
       console.log('[Translation] Removed realtime listener from all input boxes');
       this.realtimeInputHandler = null;
+    }
+
+    if (this.realtimeFinalizeHandler) {
+      const allInputBoxes = document.querySelectorAll('[contenteditable="true"]');
+      allInputBoxes.forEach(inputBox => {
+        inputBox.removeEventListener('compositionend', this.realtimeFinalizeHandler);
+        inputBox.removeEventListener('blur', this.realtimeFinalizeHandler);
+      });
+      this.realtimeFinalizeHandler = null;
+    }
+
+    if (this._realtimeDebounceTimer) {
+      clearTimeout(this._realtimeDebounceTimer);
+      this._realtimeDebounceTimer = null;
     }
 
     // DON'T remove preview element during cleanup

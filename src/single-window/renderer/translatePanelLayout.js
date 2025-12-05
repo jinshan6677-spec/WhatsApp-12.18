@@ -12,7 +12,6 @@
 
   // Menu buttons
   const menuButtons = panel.querySelectorAll('.panel-menu-btn[data-panel]');
-  const collapseBtn = panel.querySelector('.panel-collapse-btn[data-target]');
 
   const DEFAULT_WIDTHS = {
     expanded: 420,
@@ -90,12 +89,7 @@
       });
     });
 
-    if (collapseBtn) {
-      collapseBtn.addEventListener('click', () => {
-        const newState = currentState === 'expanded' ? 'collapsed' : 'expanded';
-        setState(newState);
-      });
-    }
+
   }
 
   function bindPanelCollapse() {
@@ -174,24 +168,8 @@
     const nextState = widths[state] ? state : 'expanded';
     currentState = nextState;
     panel.setAttribute('data-state', nextState);
-    updateButtonHighlights();
     if (notify) {
       notifyMain();
-    }
-  }
-
-  function updateButtonHighlights() {
-    // Update collapse button icon/text if needed
-    if (collapseBtn) {
-      const icon = collapseBtn.querySelector('.menu-icon');
-      const label = collapseBtn.querySelector('.menu-label');
-      if (currentState === 'collapsed') {
-        if (icon) icon.textContent = '︾';
-        if (label) label.textContent = '展开';
-      } else {
-        if (icon) icon.textContent = '︽';
-        if (label) label.textContent = '收起';
-      }
     }
   }
 

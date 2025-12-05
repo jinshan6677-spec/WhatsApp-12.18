@@ -628,12 +628,14 @@
           throw new Error('translationAPI 未初始化');
         }
         const response = await window.translationAPI.getConfig(this.accountId);
-        if (response.success && (response.config || response.data)) {
+        if (response && (response.global || response.inputBox || response.advanced)) {
+          this.config = response;
+        } else if (response && response.success && (response.config || response.data)) {
           this.config = response.config || response.data;
         } else {
           this.config = cloneDefaultConfig();
         }
-        await this.updateUI(); // updateUI 内部会调用 updateAPIConfigVisibility，它会加载引擎配置
+        await this.updateUI();
         await this.loadCurrentFriendConfig();
         this.loadStats();
       } catch (error) {
@@ -860,8 +862,8 @@
 
         console.log('[TranslateSettingsPanel] Saving config for account:', this.accountId, newConfig);
         const response = await window.translationAPI.saveConfig(this.accountId, newConfig);
-
-        if (response.success) {
+        const saveOk = !response || (response && response.success === true);
+        if (saveOk) {
           console.log('[TranslateSettingsPanel] Config saved successfully');
           this.config = newConfig;
 
@@ -945,8 +947,9 @@
             this.showMessage('设置已保存并应用', 'success');
           }
         } else {
-          console.error('[TranslateSettingsPanel] Failed to save config:', response.error);
-          this.showMessage('保存失败：' + (response.error || '未知错误'), 'error');
+          const errMsg = response && response.error ? response.error : '未知错误';
+          console.error('[TranslateSettingsPanel] Failed to save config:', errMsg);
+          this.showMessage('保存失败：' + errMsg, 'error');
         }
       } catch (error) {
         console.error('[TranslateSettingsPanel] saveSettings error:', error);

@@ -1114,7 +1114,23 @@ button:focus-visible {
 }
 
 .menu-icon {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 2px;
+}
+
+.menu-icon svg {
+  width: 20px;
+  height: 20px;
+  transition: all 0.2s ease;
+}
+
+.panel-menu-btn:hover .menu-icon svg,
+.panel-menu-btn.active .menu-icon svg {
+  transform: scale(1.1);
 }
 
 .menu-label {
@@ -1123,11 +1139,7 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-.panel-collapse-btn {
-  margin-top: auto;
-  border-top: 1px solid #e0e0e0;
-  padding-top: 12px;
-}
+
 
 /* Collapsed State */
 .translate-panel[data-state="collapsed"] .translate-panel-body {
@@ -1140,6 +1152,11 @@ button:focus-visible {
 
 .translate-panel[data-state="collapsed"] .menu-label {
   display: none;
+}
+
+.translate-panel[data-state="collapsed"] .menu-icon svg {
+  width: 24px;
+  height: 24px;
 }
 
 .translate-panel[data-state="collapsed"] .panel-menu-btn {

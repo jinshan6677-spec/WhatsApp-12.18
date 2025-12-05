@@ -44,6 +44,16 @@
           const sourceValue = source[key];
           const targetValue = result[key];
 
+          // Special case: friendConfigs should replace entirely to honor deletions
+          if (key === 'friendConfigs') {
+            if (sourceValue !== null && typeof sourceValue === 'object') {
+              result[key] = { ...sourceValue };
+            } else {
+              result[key] = sourceValue;
+            }
+            continue;
+          }
+
           // If source value is an array, replace directly (don't merge arrays)
           if (Array.isArray(sourceValue)) {
             result[key] = [...sourceValue];

@@ -134,17 +134,29 @@ class TranslationUI {
    * Show Chinese block alert
    */
   showChineseBlockAlert() {
+    // Remove existing alert if any
+    const existingAlert = document.querySelector('.wa-chinese-block-alert');
+    if (existingAlert) {
+      existingAlert.remove();
+    }
+
     // Create alert element
     const alert = document.createElement('div');
     alert.className = 'wa-chinese-block-alert';
     alert.innerHTML = `
       <div class="alert-content">
-        <span class="alert-icon">🚫</span>
-        <div class="alert-text">
-          <strong>检测到中文内容</strong>
-          <p>已启用禁发中文功能，请先翻译后再发送</p>
+        <div class="alert-icon-wrapper">
+            <span class="alert-icon">🚫</span>
         </div>
-        <button class="alert-close">×</button>
+        <div class="alert-text">
+          <div class="alert-title">检测到中文内容</div>
+          <div class="alert-message">已启用禁发中文功能，请先翻译后再发送</div>
+        </div>
+        <button class="alert-close">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 3L3 9M3 3L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
       </div>
     `;
 
@@ -152,80 +164,129 @@ class TranslationUI {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: #fff3cd;
-      border: 2px solid #ffc107;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 0, 0, 0.05);
       z-index: 10000000;
-      animation: slideInRight 0.3s ease;
-      max-width: 350px;
+      animation: waSlideInTopRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      min-width: 320px;
+      max-width: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      pointer-events: auto;
     `;
+
+    // Inject keyframes for animation if not already present
+    if (!document.getElementById('wa-animation-styles-v2')) {
+        const styleSheet = document.createElement('style');
+        styleSheet.id = 'wa-animation-styles-v2';
+        styleSheet.textContent = `
+            @keyframes waSlideInTopRight {
+                0% { opacity: 0; transform: translate(0, -20px); }
+                100% { opacity: 1; transform: translate(0, 0); }
+            }
+             @keyframes waFadeOutRight {
+                0% { opacity: 1; transform: translate(0, 0); }
+                100% { opacity: 0; transform: translate(20px, 0); }
+            }
+        `;
+        document.head.appendChild(styleSheet);
+    }
 
     const content = alert.querySelector('.alert-content');
     content.style.cssText = `
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
+    `;
+
+    const iconWrapper = alert.querySelector('.alert-icon-wrapper');
+    iconWrapper.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: #FFF5F5;
+      border-radius: 10px;
+      flex-shrink: 0;
     `;
 
     const icon = alert.querySelector('.alert-icon');
     icon.style.cssText = `
-      font-size: 24px;
-      flex-shrink: 0;
+      font-size: 18px;
+      line-height: 1;
     `;
 
     const text = alert.querySelector('.alert-text');
     text.style.cssText = `
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     `;
 
-    const strong = alert.querySelector('strong');
-    strong.style.cssText = `
-      display: block;
-      color: #856404;
-      margin-bottom: 4px;
+    const title = alert.querySelector('.alert-title');
+    title.style.cssText = `
+      font-weight: 600;
+      color: #111827;
       font-size: 14px;
+      line-height: 20px;
     `;
 
-    const p = alert.querySelector('p');
-    p.style.cssText = `
-      margin: 0;
-      color: #856404;
+    const message = alert.querySelector('.alert-message');
+    message.style.cssText = `
+      color: #6B7280;
       font-size: 13px;
-      line-height: 1.4;
+      line-height: 18px;
     `;
 
     const closeBtn = alert.querySelector('.alert-close');
     closeBtn.style.cssText = `
       background: transparent;
       border: none;
-      font-size: 24px;
-      color: #856404;
+      color: #9CA3AF;
       cursor: pointer;
-      padding: 0;
-      width: 24px;
-      height: 24px;
+      padding: 6px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.2s;
       flex-shrink: 0;
+      margin-left: 4px;
     `;
+    
+    closeBtn.onmouseenter = () => {
+        closeBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+        closeBtn.style.color = '#4B5563';
+    };
+    
+    closeBtn.onmouseleave = () => {
+        closeBtn.style.backgroundColor = 'transparent';
+        closeBtn.style.color = '#9CA3AF';
+    };
+
+    const removeAlert = () => {
+        if (alert.parentNode) {
+             alert.style.animation = 'waFadeOutRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+             setTimeout(() => {
+                 if (alert.parentNode) alert.parentNode.removeChild(alert);
+             }, 300);
+        }
+    };
 
     closeBtn.onclick = () => {
-      if (alert.parentNode) {
-        alert.parentNode.removeChild(alert);
-      }
+      removeAlert();
     };
 
     document.body.appendChild(alert);
 
-    // Auto remove after 3 seconds
+    // Auto remove after 4 seconds
     setTimeout(() => {
-      if (alert.parentNode) {
-        alert.parentNode.removeChild(alert);
-      }
-    }, 3000);
+        removeAlert();
+    }, 4000);
   }
 
   /**
@@ -351,13 +412,8 @@ class TranslationUI {
       return;
     }
 
-    // Handle Original Text Display
-    if (originalText && originalText.trim().length > 0) {
-        originalPanel.style.display = 'flex';
-        originalTextDiv.textContent = originalText;
-    } else {
-        originalPanel.style.display = 'none';
-    }
+    originalPanel.style.display = 'none';
+    if (originalTextDiv) { originalTextDiv.textContent = ''; }
 
     // Handle Translated Text Display
     if (isLoading) {
@@ -517,10 +573,12 @@ class TranslationUI {
    * Hide realtime preview
    */
   hideRealtimePreview() {
-    const preview = document.querySelector('.wa-realtime-preview');
-    if (preview) {
-      preview.style.display = 'none';
-    }
+    const previews = document.querySelectorAll('.wa-realtime-preview');
+    previews.forEach(p => {
+      if (p && p.parentNode) {
+        p.parentNode.removeChild(p);
+      }
+    });
   }
 
   /**
