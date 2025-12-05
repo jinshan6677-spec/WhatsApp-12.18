@@ -18,6 +18,16 @@
  */
 
 const FingerprintConfig = require('../../../domain/fingerprint/FingerprintConfig');
+const TestCategory = require('./test-runner/TestCategory');
+const navigatorTests = require('./test-runner/builtins/navigatorTests');
+const screenTests = require('./test-runner/builtins/screenTests');
+const prototypeTests = require('./test-runner/builtins/prototypeTests');
+const functionTests = require('./test-runner/builtins/functionTests');
+const webglTests = require('./test-runner/builtins/webglTests');
+const timezoneTests = require('./test-runner/builtins/timezoneTests');
+const generalTests = require('./test-runner/builtins/generalTests');
+const browserleaks = require('./test-runner/suites/browserleaks');
+const pixelscan = require('./test-runner/suites/pixelscan');
 
 /**
  * Test result structure
@@ -58,19 +68,7 @@ const FingerprintConfig = require('../../../domain/fingerprint/FingerprintConfig
 /**
  * Test categories for organizing tests
  */
-const TestCategory = {
-  NAVIGATOR: 'navigator',
-  CANVAS: 'canvas',
-  WEBGL: 'webgl',
-  AUDIO: 'audio',
-  FONTS: 'fonts',
-  SCREEN: 'screen',
-  TIMEZONE: 'timezone',
-  WEBRTC: 'webrtc',
-  PROTOTYPE: 'prototype',
-  FUNCTION: 'function',
-  GENERAL: 'general'
-};
+ 
 
 // ==================== FingerprintTestRunner Class ====================
 
@@ -458,17 +456,9 @@ class FingerprintTestRunner {
    * 
    * @param {FingerprintConfig} config - Fingerprint configuration
    * @returns {TestResult} Test result
-   */
+  */
   static navigatorUserAgentTest(config) {
-    const expected = config.userAgent;
-    const actual = config.userAgent; // In real browser, would be navigator.userAgent
-    
-    return {
-      passed: expected === actual && typeof expected === 'string' && expected.length > 0,
-      expected,
-      actual,
-      details: 'User-Agent string should match configuration'
-    };
+    return navigatorTests.navigatorUserAgentTest(config);
   }
 
   /**
@@ -479,18 +469,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static navigatorPlatformTest(config) {
-    const expected = config.os?.platform;
-    const actual = config.os?.platform; // In real browser, would be navigator.platform
-    
-    const validPlatforms = ['Win32', 'MacIntel', 'Linux x86_64', 'Linux armv7l', 'Linux aarch64'];
-    const isValid = validPlatforms.includes(expected);
-    
-    return {
-      passed: expected === actual && isValid,
-      expected,
-      actual,
-      details: isValid ? 'Platform matches configuration' : `Platform should be one of: ${validPlatforms.join(', ')}`
-    };
+    return navigatorTests.navigatorPlatformTest(config);
   }
 
   /**
@@ -501,17 +480,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static navigatorHardwareConcurrencyTest(config) {
-    const expected = config.hardware?.cpuCores;
-    const actual = config.hardware?.cpuCores; // In real browser, would be navigator.hardwareConcurrency
-    
-    const isValid = typeof expected === 'number' && expected >= 1 && expected <= 128;
-    
-    return {
-      passed: expected === actual && isValid,
-      expected,
-      actual,
-      details: isValid ? 'CPU cores matches configuration' : 'CPU cores should be between 1 and 128'
-    };
+    return navigatorTests.navigatorHardwareConcurrencyTest(config);
   }
 
   /**
@@ -522,18 +491,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static navigatorDeviceMemoryTest(config) {
-    const expected = config.hardware?.deviceMemory;
-    const actual = config.hardware?.deviceMemory; // In real browser, would be navigator.deviceMemory
-    
-    const validValues = [0.25, 0.5, 1, 2, 4, 8, 16, 32];
-    const isValid = validValues.includes(expected);
-    
-    return {
-      passed: expected === actual && isValid,
-      expected,
-      actual,
-      details: isValid ? 'Device memory matches configuration' : `Device memory should be one of: ${validValues.join(', ')}`
-    };
+    return navigatorTests.navigatorDeviceMemoryTest(config);
   }
 
   /**
@@ -544,17 +502,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static navigatorLanguageTest(config) {
-    const expected = config.language?.primary || config.navigator?.language;
-    const actual = expected; // In real browser, would be navigator.language
-    
-    const isValid = typeof expected === 'string' && expected.length > 0;
-    
-    return {
-      passed: expected === actual && isValid,
-      expected,
-      actual,
-      details: isValid ? 'Language matches configuration' : 'Language should be a non-empty string'
-    };
+    return navigatorTests.navigatorLanguageTest(config);
   }
 
   /**
@@ -565,17 +513,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static navigatorWebdriverTest(config) {
-    const expected = config.navigator?.webdriver;
-    const actual = expected; // In real browser, would be navigator.webdriver
-    
-    const isHidden = expected === false || expected === undefined;
-    
-    return {
-      passed: isHidden,
-      expected: 'false or undefined',
-      actual: expected,
-      details: isHidden ? 'Webdriver is properly hidden' : 'Webdriver should be false or undefined to avoid detection'
-    };
+    return navigatorTests.navigatorWebdriverTest(config);
   }
 
   /**
@@ -586,20 +524,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static screenResolutionTest(config) {
-    const screen = config.hardware?.screen;
-    const expected = screen ? `${screen.width}x${screen.height}` : 'unknown';
-    const actual = expected; // In real browser, would be screen.width x screen.height
-    
-    const isValid = screen && 
-      typeof screen.width === 'number' && screen.width > 0 &&
-      typeof screen.height === 'number' && screen.height > 0;
-    
-    return {
-      passed: isValid,
-      expected,
-      actual,
-      details: isValid ? 'Screen resolution matches configuration' : 'Screen resolution should have valid width and height'
-    };
+    return screenTests.screenResolutionTest(config);
   }
 
   /**
@@ -612,17 +537,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static prototypeChainNoOriginalTest(config) {
-    // This test verifies the configuration doesn't have exposed internals
-    // In a real browser environment, this would check actual navigator properties
-    
-    const hasNoOriginal = !config.hasOwnProperty('__original__');
-    
-    return {
-      passed: hasNoOriginal,
-      expected: 'No __original__ property',
-      actual: hasNoOriginal ? 'No __original__ property' : '__original__ property found',
-      details: 'Wrapped functions should not expose internal references'
-    };
+    return prototypeTests.prototypeChainNoOriginalTest(config);
   }
 
   /**
@@ -635,18 +550,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static prototypeChainDescriptorsTest(config) {
-    // Check that the config object has proper structure
-    const hasProperStructure = 
-      config.browser !== undefined &&
-      config.os !== undefined &&
-      config.hardware !== undefined;
-    
-    return {
-      passed: hasProperStructure,
-      expected: 'Proper object structure with browser, os, hardware',
-      actual: hasProperStructure ? 'Structure is valid' : 'Missing required properties',
-      details: 'Configuration should have consistent property structure'
-    };
+    return prototypeTests.prototypeChainDescriptorsTest(config);
   }
 
   /**
@@ -659,18 +563,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static functionToStringNativeTest(config) {
-    // In a real browser environment, this would check:
-    // navigator.userAgent.toString.toString().includes('[native code]')
-    
-    // For configuration testing, we verify the config is valid
-    const isValid = config.validate ? config.validate().valid : true;
-    
-    return {
-      passed: isValid,
-      expected: 'function toString() { [native code] }',
-      actual: isValid ? 'Configuration is valid (native code check requires browser)' : 'Configuration is invalid',
-      details: 'Wrapped functions should return [native code] when stringified'
-    };
+    return functionTests.functionToStringNativeTest(config);
   }
 
 
@@ -682,17 +575,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static webglVendorTest(config) {
-    const expected = config.webgl?.vendor;
-    const actual = expected; // In real browser, would be from WebGL context
-    
-    const isValid = typeof expected === 'string' && expected.length > 0;
-    
-    return {
-      passed: isValid,
-      expected,
-      actual,
-      details: isValid ? 'WebGL vendor matches configuration' : 'WebGL vendor should be a non-empty string'
-    };
+    return webglTests.webglVendorTest(config);
   }
 
   /**
@@ -703,17 +586,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static webglRendererTest(config) {
-    const expected = config.webgl?.renderer;
-    const actual = expected; // In real browser, would be from WebGL context
-    
-    const isValid = typeof expected === 'string' && expected.length > 0;
-    
-    return {
-      passed: isValid,
-      expected,
-      actual,
-      details: isValid ? 'WebGL renderer matches configuration' : 'WebGL renderer should be a non-empty string'
-    };
+    return webglTests.webglRendererTest(config);
   }
 
   /**
@@ -724,18 +597,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static timezoneOffsetTest(config) {
-    const expected = config.timezone?.offset;
-    const actual = expected; // In real browser, would be new Date().getTimezoneOffset()
-    
-    // Timezone offset should be a number between -720 and 840 (UTC-12 to UTC+14)
-    const isValid = typeof expected === 'number' && expected >= -720 && expected <= 840;
-    
-    return {
-      passed: isValid,
-      expected,
-      actual,
-      details: isValid ? 'Timezone offset matches configuration' : 'Timezone offset should be between -720 and 840'
-    };
+    return timezoneTests.timezoneOffsetTest(config);
   }
 
   /**
@@ -748,29 +610,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static userAgentOSConsistencyTest(config) {
-    const userAgent = (config.userAgent || '').toLowerCase();
-    const osType = config.os?.type;
-    
-    let isConsistent = false;
-    let expectedOS = '';
-    
-    if (osType === 'windows') {
-      isConsistent = userAgent.includes('windows');
-      expectedOS = 'Windows indicator in User-Agent';
-    } else if (osType === 'macos') {
-      isConsistent = userAgent.includes('macintosh') || userAgent.includes('mac os');
-      expectedOS = 'Macintosh/Mac OS indicator in User-Agent';
-    } else if (osType === 'linux') {
-      isConsistent = userAgent.includes('linux');
-      expectedOS = 'Linux indicator in User-Agent';
-    }
-    
-    return {
-      passed: isConsistent,
-      expected: expectedOS,
-      actual: isConsistent ? 'User-Agent matches OS type' : `User-Agent does not match OS type: ${osType}`,
-      details: `OS type: ${osType}, User-Agent contains correct OS indicator: ${isConsistent}`
-    };
+    return generalTests.userAgentOSConsistencyTest(config);
   }
 
   /**
@@ -781,21 +621,7 @@ class FingerprintTestRunner {
    * @returns {TestResult} Test result
    */
   static configurationValidityTest(config) {
-    let isValid = true;
-    let errors = [];
-    
-    if (config.validate) {
-      const validation = config.validate();
-      isValid = validation.valid;
-      errors = validation.errors || [];
-    }
-    
-    return {
-      passed: isValid,
-      expected: 'Valid configuration',
-      actual: isValid ? 'Configuration is valid' : `Invalid: ${errors.map(e => e.reason).join(', ')}`,
-      details: isValid ? 'All configuration fields are valid' : `${errors.length} validation error(s) found`
-    };
+    return generalTests.configurationValidityTest(config);
   }
 
   // ==================== Browserleaks-style Tests (Requirement 52.1) ====================
@@ -809,48 +635,7 @@ class FingerprintTestRunner {
    * @returns {Array<TestDefinition>} Array of test definitions
    */
   static createBrowserleaksTests() {
-    return [
-      {
-        name: 'Browserleaks - Canvas Fingerprint',
-        testFn: (config) => ({
-          passed: config.canvas?.mode === 'noise' || config.canvas?.mode === 'off',
-          expected: 'Canvas noise or disabled',
-          actual: config.canvas?.mode,
-          details: 'Canvas fingerprinting should be protected'
-        }),
-        category: TestCategory.CANVAS
-      },
-      {
-        name: 'Browserleaks - WebGL Fingerprint',
-        testFn: (config) => ({
-          passed: config.webgl?.mode === 'custom' && config.webgl?.vendor && config.webgl?.renderer,
-          expected: 'Custom WebGL with vendor and renderer',
-          actual: `Mode: ${config.webgl?.mode}, Vendor: ${config.webgl?.vendor ? 'set' : 'missing'}`,
-          details: 'WebGL fingerprinting should be customized'
-        }),
-        category: TestCategory.WEBGL
-      },
-      {
-        name: 'Browserleaks - Audio Fingerprint',
-        testFn: (config) => ({
-          passed: config.audio?.mode === 'noise' || config.audio?.mode === 'off',
-          expected: 'Audio noise or disabled',
-          actual: config.audio?.mode,
-          details: 'Audio fingerprinting should be protected'
-        }),
-        category: TestCategory.AUDIO
-      },
-      {
-        name: 'Browserleaks - Font Detection',
-        testFn: (config) => ({
-          passed: config.fonts?.mode === 'custom' && Array.isArray(config.fonts?.list) && config.fonts.list.length > 0,
-          expected: 'Custom font list',
-          actual: `Mode: ${config.fonts?.mode}, Fonts: ${config.fonts?.list?.length || 0}`,
-          details: 'Font enumeration should be controlled'
-        }),
-        category: TestCategory.FONTS
-      }
-    ];
+    return browserleaks.createBrowserleaksTests();
   }
 
   // ==================== Pixelscan-style Tests (Requirement 52.2) ====================
@@ -864,44 +649,7 @@ class FingerprintTestRunner {
    * @returns {Array<TestDefinition>} Array of test definitions
    */
   static createPixelscanTests() {
-    return [
-      {
-        name: 'Pixelscan - Automation Detection',
-        testFn: (config) => ({
-          passed: config.navigator?.webdriver === false || config.navigator?.webdriver === undefined,
-          expected: 'No automation indicators',
-          actual: config.navigator?.webdriver,
-          details: 'Webdriver should be hidden'
-        }),
-        category: TestCategory.NAVIGATOR
-      },
-      {
-        name: 'Pixelscan - Timezone Consistency',
-        testFn: (config) => ({
-          passed: config.timezone?.name && typeof config.timezone?.offset === 'number',
-          expected: 'Consistent timezone configuration',
-          actual: `Name: ${config.timezone?.name}, Offset: ${config.timezone?.offset}`,
-          details: 'Timezone should be properly configured'
-        }),
-        category: TestCategory.TIMEZONE
-      },
-      {
-        name: 'Pixelscan - Screen Consistency',
-        testFn: (config) => {
-          const screen = config.hardware?.screen;
-          const isConsistent = screen && 
-            screen.availWidth <= screen.width &&
-            screen.availHeight <= screen.height;
-          return {
-            passed: isConsistent,
-            expected: 'availWidth <= width, availHeight <= height',
-            actual: screen ? `${screen.availWidth}x${screen.availHeight} vs ${screen.width}x${screen.height}` : 'No screen config',
-            details: 'Screen dimensions should be consistent'
-          };
-        },
-        category: TestCategory.SCREEN
-      }
-    ];
+    return pixelscan.createPixelscanTests();
   }
 
   /**

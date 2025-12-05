@@ -18,10 +18,6 @@ const FingerprintConfig = require('../../src/domain/fingerprint/FingerprintConfi
 
 // ==================== Arbitraries ====================
 
-/**
- * OS type arbitrary
- */
-const osTypeArbitrary = fc.constantFrom('windows', 'macos', 'linux');
 
 /**
  * Browser type arbitrary for Windows
@@ -330,8 +326,10 @@ describe('FingerprintGenerator Property Tests', () => {
           seedArbitrary,
           async ({ os, browser }, seed) => {
             // Generate two fingerprints with the same seed
-            const config1 = generator.generateFingerprint({ os, browser, seed });
-            const config2 = generator.generateFingerprint({ os, browser, seed });
+            const gen1 = new FingerprintGenerator();
+            const gen2 = new FingerprintGenerator();
+            const config1 = gen1.generateFingerprint({ os, browser, seed });
+            const config2 = gen2.generateFingerprint({ os, browser, seed });
             
             // Core properties should be the same (from database template)
             expect(config1.userAgent).toBe(config2.userAgent);

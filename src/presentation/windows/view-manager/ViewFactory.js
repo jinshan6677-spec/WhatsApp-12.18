@@ -92,37 +92,36 @@ class ViewFactory {
     // Set account ID in environment for preload script
     process.env.ACCOUNT_ID = accountId;
 
-    // Remove CSP to allow script injection for translation
-    accountSession.webRequest.onHeadersReceived((details, callback) => {
-      if (details.url.includes('web.whatsapp.com')) {
-        const headers = details.responseHeaders;
+    if (accountSession && accountSession.webRequest && typeof accountSession.webRequest.onHeadersReceived === 'function') {
+      accountSession.webRequest.onHeadersReceived((details, callback) => {
+        if (details.url.includes('web.whatsapp.com')) {
+          const headers = details.responseHeaders;
+          delete headers['content-security-policy'];
+          delete headers['content-security-policy-report-only'];
+          this.log('info', `CSP removed for translation injection: ${details.url}`);
+          callback({ responseHeaders: headers });
+        } else {
+          callback({ responseHeaders: details.responseHeaders });
+        }
+      });
+    }
 
-        // Remove CSP entirely to allow our translation script
-        delete headers['content-security-policy'];
-        delete headers['content-security-policy-report-only'];
-
-        this.log('info', `CSP removed for translation injection: ${details.url}`);
-
-        callback({ responseHeaders: headers });
-      } else {
-        callback({ responseHeaders: details.responseHeaders });
-      }
-    });
-
-    accountSession.webRequest.onBeforeRequest((details, callback) => {
-      const url = details.url || '';
-      if (url.startsWith('https://crashlogs.whatsapp.net/')) {
-        this.log('debug', `Blocked crashlog request: ${url}`);
-        callback({ cancel: true });
-        return;
-      }
-      if (url.includes('/wa_fls_upload_check') && url.includes('crashlogs.whatsapp.net')) {
-        this.log('debug', `Blocked crashlog upload check: ${url}`);
-        callback({ cancel: true });
-        return;
-      }
-      callback({});
-    });
+    if (accountSession && accountSession.webRequest && typeof accountSession.webRequest.onBeforeRequest === 'function') {
+      accountSession.webRequest.onBeforeRequest((details, callback) => {
+        const url = details.url || '';
+        if (url.startsWith('https://crashlogs.whatsapp.net/')) {
+          this.log('debug', `Blocked crashlog request: ${url}`);
+          callback({ cancel: true });
+          return;
+        }
+        if (url.includes('/wa_fls_upload_check') && url.includes('crashlogs.whatsapp.net')) {
+          this.log('debug', `Blocked crashlog upload check: ${url}`);
+          callback({ cancel: true });
+          return;
+        }
+        callback({});
+      });
+    }
 
     // IMPORTANT: Do NOT set both 'partition' and 'session' - they are mutually exclusive!
     // When both are set, 'session' is ignored and a new session is created from 'partition'.

@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const FingerprintTemplate = require('../../../domain/fingerprint/FingerprintTemplate');
-const FingerprintConfig = require('../../../domain/fingerprint/FingerprintConfig');
 
 /**
  * TemplateManager - Fingerprint Template Management Service

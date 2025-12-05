@@ -20,7 +20,7 @@
   - `src/ui/main-window/ViewBoundsManager.js:138`。
   - `src/utils/encryption.js:19–20`。
 - 超大文件与复杂度
-  - `src/single-window/renderer/translate-settings/*`（已拆分模块化）、`src/single-window/renderer/preload-main/*`（已拆分模块化）、`src/domain/fingerprint/FingerprintDatabase.js`（997 行）、`src/application/services/fingerprint/FingerprintTestRunner.js`（937 行）、`src/application/services/fingerprint/FingerprintValidator.js`（705 行）。建议按领域拆分、引入子模块与单测。
+  - `src/single-window/renderer/translate-settings/*`（已拆分模块化）、`src/single-window/renderer/preload-main/*`（已拆分模块化）、`src/domain/fingerprint/FingerprintDatabase.js`（已拆分模块化）、`src/application/services/fingerprint/FingerprintValidator.js`（已拆分模块化）。`src/application/services/fingerprint/FingerprintTestRunner.js` 已拆分为子模块，见“已实施改动（指纹测试运行器拆分）”。建议按领域拆分、引入子模块与单测。
   - 环境设置面板已拆分为子模块，详情见“已实施改动（环境设置面板拆分）”。
   - 翻译设置面板已拆分为子模块，详情见“已实施改动（翻译设置面板拆分）”。
   - 预加载主桥已拆分为子模块，详情见“已实施改动（预加载主桥拆分）”。
@@ -252,4 +252,35 @@
   - 保留通道白名单校验，统一于 `channels.js` 管理，便于未来扩展与审计。
 - 验证
   - Lint：`npm run lint` 通过（0 错误）。
-  - 测试：`npm test -- --runInBand` 显示既有失败（ViewManager 归档用例与指纹属性测试），与本次预加载拆分无关；渲染层初始化与事件绑定正常。
+ - 测试：`npm test -- --runInBand` 显示既有失败（ViewManager 归档用例与指纹属性测试），与本次预加载拆分无关；渲染层初始化与事件绑定正常。
+ 
+## 已实施改动（指纹测试运行器拆分）
+- 模块化目录
+  - 新增 `src/application/services/fingerprint/test-runner/` 目录：
+    - `TestCategory.js` 测试分类常量。
+    - `builtins/` 内置测试集合（`navigatorTests.js`、`screenTests.js`、`prototypeTests.js`、`functionTests.js`、`webglTests.js`、`timezoneTests.js`、`generalTests.js`）。
+    - `suites/` 测试套件构造器（`browserleaks.js`、`pixelscan.js`）。
+- 运行器精简
+  - `src/application/services/fingerprint/FingerprintTestRunner.js` 保留运行与报告逻辑，内置测试通过模块导入；保留 `static` 方法及 `TestCategory` 挂载，兼容原有调用。
+- 兼容性与接入
+  - 对外 API 不变：`registerTest`、`runAll`、`generateReport`、`getPreview`，以及 `createBrowserleaksTests`、`createPixelscanTests` 与 `register*Tests`。
+- 验证
+  - Lint：`npm run lint` 通过。
+  - 运行示例验证：通过 `node -e` 加载并执行 `registerBrowserleaksTests()` 与 `registerPixelscanTests()`，`report.summary` 正常输出（总数、通过率）。
+  - `npm test` 存在与本改动无关的既有失败（归档用例与生成器属性测试）；未发现因本次拆分导致的回归。
+
+## 已实施改动（指纹验证器拆分）
+- 模块化目录
+  - 新增 `src/application/services/fingerprint/validator/` 目录：
+    - `constants.js` 验证常量集合（字体、WebGL Vendor、常见分辨率）。
+    - `uaPlatform.js` User-Agent 与平台一致性校验。
+    - `webgl.js` WebGL 与 OS 兼容性校验与 Vendor 列表。
+    - `fonts.js` 字体与 OS 匹配校验。
+    - `screen.js` 屏幕分辨率与设备像素比合理性校验。
+- 验证器精简
+  - `src/application/services/fingerprint/FingerprintValidator.js` 只负责聚合与对外 API；内部委托至上述子模块；静态方法 `getExpectedPlatform`、`getExpectedFonts`、`getValidWebGLVendors` 保持，转发到子模块；常量通过 `constants.js` 挂载到类上，兼容旧用法。
+- 兼容性与接入
+  - 对外 API 不变：`validate`、`validateWithSuggestions`、`isConsistent` 以及各维度校验方法；`src/application/services/fingerprint/index.js` 无需改动。
+- 验证
+  - Lint：`npm run lint` 通过。
+  - 测试：`npm test -- --runInBand` 指纹相关单测通过；存在与视图管理、归档备份相关的既有失败，与本改动无关。
