@@ -181,7 +181,7 @@ class NotificationManager {
 
       // 创建通知
       const notification = new Notification({
-        title: title || 'WhatsApp',
+        title: title || '老板稳了！天天旺',
         body: body || '',
         silent: silent,
         icon: icon

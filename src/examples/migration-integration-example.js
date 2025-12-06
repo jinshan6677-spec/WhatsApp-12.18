@@ -231,7 +231,7 @@ function showMigrationNotification(migrationResult) {
 
   if (Notification.isSupported()) {
     const notification = new Notification({
-      title: 'WhatsApp Desktop',
+      title: '老板稳了！天天旺',
       body: 'Your data has been successfully migrated to the new version',
       silent: false
     });

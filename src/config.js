@@ -13,7 +13,7 @@ module.exports = {
   windowConfig: {
     width: 1200,
     height: 800,
-    title: 'WhatsApp Desktop',
+    title: '老板稳了！天天旺',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

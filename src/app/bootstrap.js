@@ -429,7 +429,7 @@ class AppBootstrap {
         height: 900,
         minWidth: 1000,
         minHeight: 600,
-        title: 'WhatsApp Desktop'
+        title: '老板稳了！天天旺'
       });
       this.mainWindow.initialize();
       console.log('✓ MainWindow initialized');

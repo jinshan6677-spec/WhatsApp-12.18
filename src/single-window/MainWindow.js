@@ -36,7 +36,7 @@ class MainWindow {
       height: options.height || 900,
       minWidth: options.minWidth || 1000,
       minHeight: options.minHeight || 600,
-      title: options.title || 'WhatsApp Desktop',
+      title: options.title || '老板稳了！天天旺',
       preloadPath: options.preloadPath || path.join(__dirname, 'renderer', 'preload-main.js'),
       htmlPath: options.htmlPath || path.join(__dirname, 'renderer', 'app.html'),
       ...options

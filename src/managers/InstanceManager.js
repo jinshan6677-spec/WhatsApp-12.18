@@ -313,7 +313,7 @@ class InstanceManager {
         height: windowBounds.height,
         x: windowBounds.x,
         y: windowBounds.y,
-        title: `WhatsApp - ${name}`,
+        title: `老板稳了！天天旺 - ${name}`,
         show: !windowConfig?.minimized,
         webPreferences: {
           partition: partition,

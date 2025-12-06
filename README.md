@@ -1,4 +1,4 @@
-# WhatsApp Desktop Application
+# 老板稳了！天天旺
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=for-the-badge)
 ![Architecture](https://img.shields.io/badge/Architecture-v2.0-00d26a?style=for-the-badge&logo=architecture&logoColor=white)
 
-基于 Electron 的 WhatsApp 桌面应用程序，支持实时翻译。
+老板稳了！天天旺 - 专业的 WhatsApp 桌面应用程序，支持多账号管理和实时翻译。
 
 [功能特性](#核心特性) • [快速开始](#快速开始) • [新架构](#-新架构-v20) • [文档](#文档)
 
