@@ -19,10 +19,15 @@
     <div id="sidebar" data-collapsed="false">
       <div class="sidebar-header">
         <div class="header-top">
-          <h2 class="sidebar-title">账号列表</h2>
           <div class="header-actions">
             <button id="sidebar-toggle" class="btn-icon sidebar-toggle-btn" title="收起侧边栏">
-              <span class="icon">◀</span>
+              <span class="icon">«</span>
+            </button>
+            <button id="batch-start" class="btn-icon" title="一键启动所有账号">
+              <span class="icon">⚡</span>
+            </button>
+            <button id="selection-mode-btn" class="btn-icon" title="选择账号">
+              <span class="icon">☑</span>
             </button>
             <button id="add-account" class="btn-icon" title="添加新账号">
               <span class="icon">+</span>
@@ -31,7 +36,6 @@
         </div>
         <div class="search-container">
           <input type="text" id="account-search" placeholder="搜索账号..." autocomplete="off">
-          <span class="search-icon">🔍</span>
         </div>
       </div>
 
@@ -44,6 +48,26 @@
         </div>
 
         <!-- Account items will be dynamically inserted here -->
+      </div>
+
+      <!-- Selection Action Bar (hidden by default) -->
+      <div class="selection-action-bar hidden" id="selection-action-bar">
+        <button class="selection-btn" data-action="select-all" title="全选">
+          <span class="icon">☑</span>
+          <span class="text">全选</span>
+        </button>
+        <button class="selection-btn primary" data-action="start-selected" title="启动选中">
+          <span class="icon">▶</span>
+          <span class="text">启动</span>
+        </button>
+        <button class="selection-btn danger" data-action="delete-selected" title="删除选中">
+          <span class="icon">🗑</span>
+          <span class="text">删除</span>
+        </button>
+        <button class="selection-btn" data-action="cancel" title="取消选择">
+          <span class="icon">✕</span>
+          <span class="text">取消</span>
+        </button>
       </div>
     </div>
 

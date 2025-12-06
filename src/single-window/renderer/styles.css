@@ -75,7 +75,7 @@ body {
 
 .search-container input {
   width: 100%;
-  padding: 8px 12px 8px 32px;
+  padding: 8px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   background-color: #fff;
@@ -89,15 +89,6 @@ body {
   box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.1);
 }
 
-.search-container .search-icon {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 14px;
-  color: #999;
-  pointer-events: none;
-}
 
 /* Icon Button */
 .btn-icon {
@@ -1562,5 +1553,119 @@ button:focus-visible {
 
 /* Hide resize handle when sidebar is collapsed */
 #sidebar[data-collapsed="true"]~.resize-handle {
+  display: none;
+}
+
+/* ===== Selection Mode Styles ===== */
+.selection-action-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 8px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.selection-action-bar.hidden {
+  display: none;
+}
+
+.selection-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 50px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.selection-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.selection-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.selection-btn .icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.selection-btn .text {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.selection-btn.primary {
+  background: #25d366;
+  color: white;
+}
+
+.selection-btn.primary:hover {
+  background: #20bd5a;
+}
+
+.selection-btn.danger {
+  background: #f44336;
+  color: white;
+}
+
+.selection-btn.danger:hover {
+  background: #d32f2f;
+}
+
+/* Selection checkbox in account items */
+.selection-checkbox {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  cursor: pointer;
+  accent-color: #00bcd4;
+  flex-shrink: 0;
+}
+
+/* Account item in selection mode */
+.account-item.in-selection-mode {
+  padding-left: 8px;
+}
+
+.account-item.selected {
+  background-color: #e3f2fd !important;
+  border-color: #42a5f5 !important;
+}
+
+/* Selection mode button active state */
+#selection-mode-btn.active {
+  background-color: #e0f7fa;
+  color: #00838f;
+}
+
+/* Hide batch/selection buttons in collapsed sidebar */
+#sidebar[data-collapsed="true"] #batch-start,
+#sidebar[data-collapsed="true"] #selection-mode-btn {
+  display: none;
+}
+
+/* Hide selection action bar in collapsed sidebar */
+#sidebar[data-collapsed="true"] .selection-action-bar {
   display: none;
 }

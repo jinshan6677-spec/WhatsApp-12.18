@@ -23,6 +23,14 @@
 
   // Search state
   let filterQuery = '';
+  let searchDebounceTimer = null;
+
+  // Render version for preventing race conditions
+  let renderVersion = 0;
+
+  // Selection mode state
+  let selectionMode = false;
+  let selectedAccountIds = new Set();
 
   // Debounce for high-frequency updates (e.g. accounts-updated)
   const updateTimers = new Map();
@@ -45,11 +53,18 @@
       addAccountBtn.addEventListener('click', handleAddAccount);
     }
 
-    // Search input
+    // Search input with debounce to prevent race conditions
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         filterQuery = e.target.value.trim().toLowerCase();
-        renderAccountList();
+        // Debounce search to prevent excessive rerenders and race conditions
+        if (searchDebounceTimer) {
+          clearTimeout(searchDebounceTimer);
+        }
+        searchDebounceTimer = setTimeout(() => {
+          searchDebounceTimer = null;
+          renderAccountList();
+        }, 150); // 150ms debounce
       });
     }
 
@@ -57,6 +72,42 @@
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
     if (sidebarToggleBtn) {
       sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    }
+
+    // Batch start button
+    const batchStartBtn = document.getElementById('batch-start');
+    if (batchStartBtn) {
+      batchStartBtn.addEventListener('click', handleBatchStartAll);
+    }
+
+    // Selection mode button
+    const selectionModeBtn = document.getElementById('selection-mode-btn');
+    if (selectionModeBtn) {
+      selectionModeBtn.addEventListener('click', toggleSelectionMode);
+    }
+
+    // Selection action bar buttons
+    const selectionActionBar = document.getElementById('selection-action-bar');
+    if (selectionActionBar) {
+      selectionActionBar.addEventListener('click', (e) => {
+        const btn = e.target.closest('.selection-btn');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        switch (action) {
+          case 'select-all':
+            selectAllAccounts();
+            break;
+          case 'start-selected':
+            handleBatchStartSelected();
+            break;
+          case 'delete-selected':
+            handleBatchDeleteSelected();
+            break;
+          case 'cancel':
+            toggleSelectionMode();
+            break;
+        }
+      });
     }
 
     // Restore sidebar collapsed state from localStorage
@@ -290,17 +341,21 @@
   async function renderAccountList() {
     if (!accountList) return;
 
+    // Increment render version to cancel any pending stale renders
+    const currentRenderVersion = ++renderVersion;
+
     // Clear existing items
     const existingItems = accountList.querySelectorAll('.account-item');
     existingItems.forEach((item) => item.remove());
 
-    // Filter accounts
+    // Filter accounts - also search profileName for real WhatsApp nickname
     const filteredAccounts = accounts.filter(account => {
       if (!filterQuery) return true;
       const name = (account.name || '').toLowerCase();
+      const profileName = (account.profileName || '').toLowerCase();
       const phone = (account.phoneNumber || '').toLowerCase();
       const note = (account.note || '').toLowerCase();
-      return name.includes(filterQuery) || phone.includes(filterQuery) || note.includes(filterQuery);
+      return name.includes(filterQuery) || profileName.includes(filterQuery) || phone.includes(filterQuery) || note.includes(filterQuery);
     });
 
     // Show/hide empty state (based on filter result)
@@ -355,12 +410,24 @@
       }
     }
 
+    // Check if this render is still valid (not superseded by a newer render)
+    if (currentRenderVersion !== renderVersion) {
+      console.log(`[Sidebar] Aborting stale render (version ${currentRenderVersion}, current ${renderVersion})`);
+      return;
+    }
+
     // Sort accounts by order
     const sortedAccounts = [...filteredAccounts].sort((a, b) => {
       const orderA = a.order !== undefined ? a.order : 999;
       const orderB = b.order !== undefined ? b.order : 999;
       return orderA - orderB;
     });
+
+    // Final check before DOM mutation
+    if (currentRenderVersion !== renderVersion) {
+      console.log(`[Sidebar] Aborting stale render before DOM update (version ${currentRenderVersion}, current ${renderVersion})`);
+      return;
+    }
 
     const fragment = document.createDocumentFragment();
 
@@ -404,6 +471,30 @@
 
     if (account.id === activeAccountId) {
       item.classList.add('active');
+    }
+
+    // Selection mode checkbox
+    if (selectionMode) {
+      item.classList.add('in-selection-mode');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'selection-checkbox';
+      checkbox.checked = selectedAccountIds.has(account.id);
+      checkbox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (checkbox.checked) {
+          selectedAccountIds.add(account.id);
+          item.classList.add('selected');
+        } else {
+          selectedAccountIds.delete(account.id);
+          item.classList.remove('selected');
+        }
+      });
+      item.appendChild(checkbox);
+
+      if (selectedAccountIds.has(account.id)) {
+        item.classList.add('selected');
+      }
     }
 
     // Avatar container
@@ -1774,6 +1865,160 @@
     }
   }
 
+  /**
+   * Toggle selection mode on/off
+   */
+  function toggleSelectionMode() {
+    selectionMode = !selectionMode;
+    selectedAccountIds.clear();
+
+    const selectionModeBtn = document.getElementById('selection-mode-btn');
+    const selectionActionBar = document.getElementById('selection-action-bar');
+
+    if (selectionModeBtn) {
+      selectionModeBtn.classList.toggle('active', selectionMode);
+    }
+
+    if (selectionActionBar) {
+      selectionActionBar.classList.toggle('hidden', !selectionMode);
+    }
+
+    // Re-render account list to show/hide checkboxes
+    renderAccountList();
+
+    console.log(`[Sidebar] Selection mode: ${selectionMode ? 'ON' : 'OFF'}`);
+  }
+
+  /**
+   * Select all accounts
+   */
+  function selectAllAccounts() {
+    const allSelected = selectedAccountIds.size === accounts.length;
+
+    if (allSelected) {
+      // Deselect all
+      selectedAccountIds.clear();
+    } else {
+      // Select all
+      accounts.forEach(account => {
+        selectedAccountIds.add(account.id);
+      });
+    }
+
+    // Update UI
+    updateSelectionUI();
+  }
+
+  /**
+   * Update selection UI for all accounts
+   */
+  function updateSelectionUI() {
+    if (!accountList) return;
+
+    accounts.forEach(account => {
+      const item = accountList.querySelector(`[data-account-id="${account.id}"]`);
+      if (!item) return;
+
+      const isSelected = selectedAccountIds.has(account.id);
+      item.classList.toggle('selected', isSelected);
+
+      const checkbox = item.querySelector('.selection-checkbox');
+      if (checkbox) {
+        checkbox.checked = isSelected;
+      }
+    });
+  }
+
+  /**
+   * Handle batch start all accounts
+   */
+  async function handleBatchStartAll() {
+    if (!window.electronAPI) return;
+
+    const notRunningAccounts = accounts.filter(acc => !acc.isRunning && acc.runningStatus !== 'loading');
+
+    if (notRunningAccounts.length === 0) {
+      console.log('[Sidebar] All accounts are already running');
+      return;
+    }
+
+    console.log(`[Sidebar] Batch starting ${notRunningAccounts.length} accounts...`);
+
+    // Start accounts sequentially with a small delay between each
+    for (const account of notRunningAccounts) {
+      try {
+        updateAccountRunningStatus(account.id, 'loading');
+        await window.electronAPI.invoke('open-account', account.id);
+        console.log(`[Sidebar] Started account ${account.id}`);
+        // Small delay between account starts to avoid overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`[Sidebar] Failed to start account ${account.id}:`, error);
+        updateAccountRunningStatus(account.id, 'error');
+      }
+    }
+  }
+
+  /**
+   * Handle batch start selected accounts
+   */
+  async function handleBatchStartSelected() {
+    if (!window.electronAPI || selectedAccountIds.size === 0) return;
+
+    const selectedAccounts = accounts.filter(acc =>
+      selectedAccountIds.has(acc.id) && !acc.isRunning && acc.runningStatus !== 'loading'
+    );
+
+    if (selectedAccounts.length === 0) {
+      console.log('[Sidebar] No selected accounts to start');
+      return;
+    }
+
+    console.log(`[Sidebar] Batch starting ${selectedAccounts.length} selected accounts...`);
+
+    for (const account of selectedAccounts) {
+      try {
+        updateAccountRunningStatus(account.id, 'loading');
+        await window.electronAPI.invoke('open-account', account.id);
+        console.log(`[Sidebar] Started account ${account.id}`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`[Sidebar] Failed to start account ${account.id}:`, error);
+        updateAccountRunningStatus(account.id, 'error');
+      }
+    }
+
+    // Exit selection mode after operation
+    toggleSelectionMode();
+  }
+
+  /**
+   * Handle batch delete selected accounts
+   */
+  async function handleBatchDeleteSelected() {
+    if (!window.electronAPI || selectedAccountIds.size === 0) return;
+
+    const selectedCount = selectedAccountIds.size;
+    const confirmed = confirm(`确定要删除选中的 ${selectedCount} 个账号吗？\n\n这将删除账号配置但保留会话数据。`);
+
+    if (!confirmed) return;
+
+    console.log(`[Sidebar] Batch deleting ${selectedCount} accounts...`);
+
+    const idsToDelete = [...selectedAccountIds];
+    for (const accountId of idsToDelete) {
+      try {
+        await window.electronAPI.invoke('delete-account', accountId);
+        console.log(`[Sidebar] Deleted account ${accountId}`);
+      } catch (error) {
+        console.error(`[Sidebar] Failed to delete account ${accountId}:`, error);
+      }
+    }
+
+    // Exit selection mode after operation
+    toggleSelectionMode();
+  }
+
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -1790,6 +2035,8 @@
     getActiveAccountId: () => activeAccountId,
     renderQuickActions,
     syncAccountStatusesWithRunningStatus,
-    toggleSidebar
+    toggleSidebar,
+    toggleSelectionMode,
+    handleBatchStartAll
   };
 })();
