@@ -84,6 +84,7 @@ const invokeChannels = [
   'recovery:get-all-status',
   'recovery:retry-operation',
   'resize-sidebar',
+
   // Migration invoke
   'migration:start'
 ];
@@ -137,6 +138,7 @@ const eventChannels = [
   'view-manager:account-closed',
   'view-manager:account-close-failed',
   'view-manager:account-profile-updated',
+  'view-manager:unread-count-updated', // Added for unread badge
   // Migration events
   'migration:progress',
   'migration:log',

@@ -231,7 +231,7 @@ contextBridge.exposeInMainWorld('llmAPI', {
 contextBridge.exposeInMainWorld('electronAPI', {
   // Update account profile (nickname, avatar, phone number)
   invoke: (channel, data) => {
-    const allowedChannels = ['view:update-profile'];
+    const allowedChannels = ['view:update-profile', 'view:update-unread-count'];
     if (allowedChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
     }
@@ -487,6 +487,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     console.error('[Preload-View] Failed to inject profile extraction script:', error);
   }
+
+  // Inject unread count observer
+  try {
+    const unreadScriptPath = path.join(__dirname, '../scripts/whatsapp-unread-observer.js');
+    if (fs.existsSync(unreadScriptPath)) {
+      const scriptContent = await fs.promises.readFile(unreadScriptPath, 'utf8');
+      const wrappedScript = `
+        window.ACCOUNT_ID = '${accountId}';
+        ${scriptContent}
+      `;
+      const script = document.createElement('script');
+      script.textContent = wrappedScript;
+      script.id = 'whatsapp-unread-observer';
+      (document.head || document.documentElement).appendChild(script);
+      console.log('[Preload-View] ✓ Unread observer script injected');
+    }
+  } catch (error) {
+    console.error('[Preload-View] Failed to inject unread observer script:', error);
+  }
+
+
 });
 
 console.log('[Preload-View] Preload script completed');

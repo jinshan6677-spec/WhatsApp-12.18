@@ -128,6 +128,7 @@
       window.electronAPI.on('view-manager:view-crashed', handleViewCrashed);
       window.electronAPI.on('view-manager:connection-status-changed', handleConnectionStatusChanged);
       window.electronAPI.on('view-manager:account-profile-updated', handleAccountProfileUpdated);
+      window.electronAPI.on('view-manager:unread-count-updated', handleUnreadCountUpdated);
 
       // Manual account control events（打开/关闭账号）
       window.electronAPI.on('view-manager:account-opening', handleAccountOpening);
@@ -525,6 +526,9 @@
     avatarContainer.appendChild(avatar);
     avatarContainer.appendChild(statusDot);
 
+    // Unread Badge
+    renderUnreadBadge(account, avatarContainer);
+
     // Info
     const info = document.createElement('div');
     info.className = 'account-info';
@@ -691,6 +695,51 @@
   }
 
   /**
+   * Handle unread count updated event
+   */
+  function handleUnreadCountUpdated(data) {
+    const { accountId, unreadCount } = data || {};
+
+    const account = accounts.find((acc) => acc.id === accountId);
+    if (account) {
+      account.unreadCount = unreadCount;
+    }
+
+    if (!accountList) return;
+    const item = accountList.querySelector(`[data-account-id="${accountId}"]`);
+    if (!item) return;
+
+    const avatarContainer = item.querySelector('.account-avatar-container');
+    if (avatarContainer) {
+      renderUnreadBadge(account, avatarContainer);
+    }
+  }
+
+  /**
+   * Render unread badge on avatar
+   */
+  function renderUnreadBadge(account, container) {
+    if (!account || !container) return;
+
+    let badge = container.querySelector('.unread-badge');
+    const count = parseInt(account.unreadCount || 0, 10);
+
+    if (count > 0) {
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'unread-badge';
+        container.appendChild(badge);
+      }
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = 'flex';
+    } else {
+      if (badge) {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  /**
    * 根据账号 profile 信息更新账号项的头像 / 名称 / 号码展示
    * @param {Object} account - 账号对象
    * @param {HTMLElement} item - 对应的账号 DOM 节点
@@ -797,7 +846,7 @@
         infoBlock.appendChild(ipContainer);
       }
     }
-    
+
     // Initial render with shield icon if not already present (for loading state)
     // But wait, renderIPDetails clears innerHTML. 
     // We want the shield to be always visible? 
@@ -809,17 +858,17 @@
     if (!ipContainer.hasChildNodes()) {
       const loadingRow = document.createElement('div');
       loadingRow.className = 'ip-row';
-      
+
       const loadingText = document.createElement('span');
       loadingText.className = 'loading-dots';
       loadingText.textContent = '获取IP信息';
       loadingRow.appendChild(loadingText);
-      
+
       // Always show shield icon
       const envIcon = createEnvInfoIcon(account);
       envIcon.classList.add('inline-shield');
       loadingRow.appendChild(envIcon);
-      
+
       ipContainer.appendChild(loadingRow);
     }
 
@@ -894,9 +943,9 @@
     // Support passing account via info._account (legacy/injected) or direct argument
     const targetAccount = account || info._account;
     if (targetAccount) {
-       const envIcon = createEnvInfoIcon(targetAccount);
-       envIcon.classList.add('inline-shield');
-       row.appendChild(envIcon);
+      const envIcon = createEnvInfoIcon(targetAccount);
+      envIcon.classList.add('inline-shield');
+      row.appendChild(envIcon);
     }
 
     // Location
@@ -926,7 +975,7 @@
 
   function renderIPError(container, message, fullError, account) {
     container.innerHTML = '';
-    
+
     const row = document.createElement('div');
     row.className = 'ip-row compact';
     if (fullError) row.title = fullError;
@@ -1055,7 +1104,7 @@
         _localIPCache = { ip: res.ip, time: Date.now() };
         return res.ip;
       }
-    } catch (e) {}
+    } catch (e) { }
     return _localIPCache.ip;
   }
 
@@ -1067,7 +1116,7 @@
         const cfg = res.config;
         return cfg.userAgent || (cfg.navigator && cfg.navigator.userAgent) || navigator.userAgent;
       }
-    } catch (e) {}
+    } catch (e) { }
     return navigator.userAgent;
   }
 
@@ -1084,7 +1133,7 @@
         account.lastIPInfoTimestamp = Date.now();
         return res;
       }
-    } catch (e) {}
+    } catch (e) { }
     return account.lastIPInfo || null;
   }
 
@@ -1100,7 +1149,7 @@
       const localIP = await getLocalPublicIP(false);
       const proxyInfo = await getProxyIPInfo(account);
       const proxyIP = proxyInfo && proxyInfo.isProxy ? (proxyInfo.ip || '') : '直连';
-      
+
       // Parse simplified UA
       let simpleUA = '默认';
       if (ua) {
@@ -1108,14 +1157,14 @@
         const isMac = ua.includes('Macintosh');
         const isLinux = ua.includes('Linux');
         const os = isWin ? 'Win' : (isMac ? 'Mac' : (isLinux ? 'Linux' : 'OS'));
-        
+
         const chromeMatch = ua.match(/Chrome\/(\d+)/);
         const browser = chromeMatch ? `Chrome ${chromeMatch[1]}` : 'Browser';
         simpleUA = `${os} / ${browser}`;
       }
 
       const tip = `代理 IP：${proxyIP}\n本机 IP：${localIP || '获取中...'}\n运行环境：${simpleUA}\n\n完整 UA：\n${ua}`;
-      
+
       if (btn.dataset.originalTitle) {
         btn.dataset.originalTitle = tip;
       } else {
@@ -1149,7 +1198,6 @@
 
     return btn;
   }
-
   /**
    * Handle Context Menu
    */

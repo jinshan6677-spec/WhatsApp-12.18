@@ -215,6 +215,36 @@ function register(dependencies) {
     }
   });
 
+  // Update account unread count from WhatsApp Web
+  ipcMain.handle('view:update-unread-count', async (_event, data) => {
+    try {
+      const { accountId, unreadCount } = data || {};
+
+      if (!accountId) {
+        throw new Error('Account ID is required');
+      }
+
+      // Update viewState (runtime state)
+      const viewState = viewManager.getViewState(accountId);
+      if (viewState) {
+        viewState.unreadCount = unreadCount;
+      }
+
+      // Notify renderer about the unread count update
+      mainWindow.sendToRenderer('view-manager:unread-count-updated', {
+        accountId,
+        unreadCount
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('[IPC:Account] Failed to update unread count:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+
+
   // Open account dialog for creating
   ipcMain.on('account:create', () => {
     openAccountDialog(null);
@@ -685,6 +715,8 @@ function unregister() {
   ipcMain.removeHandler('account:get-active');
   ipcMain.removeHandler('account:get-profile');
   ipcMain.removeHandler('view:update-profile');
+  ipcMain.removeHandler('view:update-unread-count');
+  ipcMain.removeHandler('view:mark-all-read');
   ipcMain.removeHandler('account:reorder');
   ipcMain.removeHandler('reorder-accounts');
   ipcMain.removeHandler('open-account');
