@@ -79,7 +79,7 @@ function openAccountDialog(accountId = null) {
  */
 function register(dependencies) {
   const { accountManager, viewManager, mainWindow } = dependencies;
-  
+
   _accountManager = accountManager;
   _viewManager = viewManager;
   _mainWindow = mainWindow;
@@ -116,11 +116,11 @@ function register(dependencies) {
   ipcMain.handle('account:list', async () => {
     try {
       const accounts = await accountManager.getAccountsSorted();
-      
+
       const accountsWithStatus = accounts.map(account => {
         const viewState = viewManager.getViewState(account.id);
         const isActive = viewManager.getActiveAccountId() === account.id;
-        
+
         return {
           ...account.toJSON(),
           viewStatus: viewState ? viewState.status : 'not_created',
@@ -131,7 +131,7 @@ function register(dependencies) {
           connectionError: viewState ? viewState.connectionError : null
         };
       });
-      
+
       return { success: true, accounts: accountsWithStatus };
     } catch (error) {
       console.error('[IPC:Account] Failed to list accounts:', error);
@@ -159,6 +159,58 @@ function register(dependencies) {
       };
     } catch (error) {
       console.error('[IPC:Account] Failed to get account profile:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // Update account profile from WhatsApp Web (called from BrowserView preload)
+  ipcMain.handle('view:update-profile', async (_event, data) => {
+    try {
+      const { accountId, profileName, phoneNumber, avatarUrl } = data || {};
+
+      if (!accountId) {
+        throw new Error('Account ID is required');
+      }
+
+      console.log(`[IPC:Account] Received profile update for ${accountId}:`, {
+        profileName,
+        phoneNumber,
+        hasAvatar: !!avatarUrl
+      });
+
+      // Update viewState (runtime state)
+      const viewState = viewManager.getViewState(accountId);
+      if (viewState) {
+        if (profileName) viewState.profileName = profileName;
+        if (phoneNumber) viewState.phoneNumber = phoneNumber;
+        if (avatarUrl) viewState.avatarUrl = avatarUrl;
+      }
+
+      // 1. Notify renderer about the profile update (UI update)
+      mainWindow.sendToRenderer('view-manager:account-profile-updated', {
+        accountId,
+        profileName: profileName || null,
+        phoneNumber: phoneNumber || null,
+        avatarUrl: avatarUrl || null
+      });
+
+      // 2. Persist to disk via AccountManager
+      // Only persist phoneNumber, profileName, avatarUrl if they are present
+      const updates = {};
+      if (profileName) updates.profileName = profileName;
+      if (phoneNumber) updates.phoneNumber = phoneNumber;
+      if (avatarUrl) updates.avatarUrl = avatarUrl;
+
+      if (Object.keys(updates).length > 0) {
+        // We do this asynchronously to not block the UI update
+        accountManager.updateAccount(accountId, updates)
+          .then(() => console.log(`[IPC:Account] Persisted profile updates for ${accountId}`))
+          .catch(err => console.error(`[IPC:Account] Failed to persist profile updates for ${accountId}:`, err));
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('[IPC:Account] Failed to update account profile:', error);
       return { success: false, error: error.message };
     }
   });
@@ -235,7 +287,7 @@ function register(dependencies) {
       if (updates.name !== undefined) accountUpdates.name = updates.name.trim();
       if (updates.phoneNumber !== undefined) accountUpdates.phoneNumber = (updates.phoneNumber || '').trim();
       if (updates.note !== undefined) accountUpdates.note = updates.note;
-      
+
       if (updates.translation !== undefined) accountUpdates.translation = updates.translation;
       if (updates.autoStart !== undefined) accountUpdates.autoStart = updates.autoStart;
 
@@ -244,7 +296,7 @@ function register(dependencies) {
         throw new Error(result.errors.join(', '));
       }
 
-      
+
 
       // Handle translation config changes
       if (updates.translation && viewManager.hasView(accountId)) {
@@ -302,7 +354,7 @@ function register(dependencies) {
         deleteUserData: options.deleteUserData !== false,
         userDataPath: options.userDataPath
       };
-      
+
       const result = await accountManager.deleteAccount(accountId, deleteOptions);
       if (!result.success) {
         throw new Error(result.errors.join(', '));
@@ -380,13 +432,13 @@ function register(dependencies) {
       return { success: true, accountId, alreadyActive: result.alreadyActive || false };
     } catch (error) {
       console.error('[IPC:Account] Failed to switch account:', error);
-      
+
       if (error.code || error.errno) {
         const failureInfo = handleNetworkFailure(error, { accountId, operation: 'switch-account' });
         console.error('[IPC:Account] Network failure details:', failureInfo.technicalDetails);
         return { success: false, error: failureInfo.userMessage, retryable: failureInfo.retryable };
       }
-      
+
       return { success: false, error: error.message };
     }
   });
@@ -415,7 +467,7 @@ function register(dependencies) {
   ipcMain.handle('switch-to-next-account', async () => {
     try {
       const result = await viewManager.switchToNextView();
-      
+
       if (result.success && result.accountId && !result.alreadyActive) {
         await accountManager.updateAccount(result.accountId, { lastActiveAt: new Date() });
         mainWindow.sendToRenderer('account:active-changed', { accountId: result.accountId });
@@ -432,7 +484,7 @@ function register(dependencies) {
   ipcMain.handle('switch-to-previous-account', async () => {
     try {
       const result = await viewManager.switchToPreviousView();
-      
+
       if (result.success && result.accountId && !result.alreadyActive) {
         await accountManager.updateAccount(result.accountId, { lastActiveAt: new Date() });
         mainWindow.sendToRenderer('account:active-changed', { accountId: result.accountId });
@@ -640,6 +692,8 @@ function unregister() {
   ipcMain.removeHandler('switch-to-next-account');
   ipcMain.removeHandler('switch-to-previous-account');
   ipcMain.removeHandler('account:get-active');
+  ipcMain.removeHandler('account:get-profile');
+  ipcMain.removeHandler('view:update-profile');
   ipcMain.removeHandler('account:reorder');
   ipcMain.removeHandler('reorder-accounts');
   ipcMain.removeHandler('open-account');
@@ -648,11 +702,11 @@ function unregister() {
   ipcMain.removeHandler('get-all-account-statuses');
   ipcMain.removeAllListeners('account:create');
   ipcMain.removeAllListeners('account:edit');
-  
+
   _accountManager = null;
   _viewManager = null;
   _mainWindow = null;
-  
+
   console.log('[IPC:Account] Account handlers unregistered');
 }
 

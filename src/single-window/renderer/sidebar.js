@@ -53,6 +53,15 @@
       });
     }
 
+    // Sidebar toggle button
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+    if (sidebarToggleBtn) {
+      sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    }
+
+    // Restore sidebar collapsed state from localStorage
+    restoreSidebarState();
+
     // Listen for account updates from main process
     if (window.electronAPI) {
       window.electronAPI.on('accounts-updated', handleAccountsUpdated);
@@ -123,21 +132,21 @@
         const oldIsRunning = account.isRunning;
         const newStatus = statusInfo.status;
         const newIsRunning = !!statusInfo.isRunning;
-        
+
         // 特殊保护：如果账号已经是 connected 状态，不要用 loading 状态覆盖
         // 这可以防止新账号创建过程中错误地影响已有账号的状态
         if (oldStatus === 'connected' && newStatus === 'loading') {
           console.warn(`[Sidebar] Protecting account ${account.id} from incorrect status change: connected -> loading`);
           return; // 跳过这次更新
         }
-        
+
         // 检查状态是否真的发生了变化
         const statusChanged = oldStatus !== newStatus || oldIsRunning !== newIsRunning;
-        
+
         if (statusChanged) {
           account.runningStatus = newStatus;
           account.isRunning = newIsRunning;
-          
+
           // 记录状态变化，便于调试
           if (oldStatus === 'connected' && newStatus !== 'connected') {
             console.warn(`[Sidebar] Account ${account.id} status changed from ${oldStatus} to ${newStatus}`);
@@ -327,11 +336,11 @@
               isRunning: acc.isRunning
             };
           });
-          
+
           mergeRunningStatuses(statusResult.statuses);
           // 同步账号状态与运行状态
           syncAccountStatusesWithRunningStatus();
-          
+
           // 记录状态变化，便于调试
           Object.keys(beforeStatuses).forEach(accountId => {
             const before = beforeStatuses[accountId];
@@ -425,26 +434,82 @@
     const name = document.createElement('div');
     name.className = 'account-name';
     name.textContent = account.name || '未命名账号';
-    name.title = account.name || '未命名账号';
+    // Removed title
 
     header.appendChild(name);
 
-    // Secondary info (Phone or Note)
+    // Secondary info (Phone + Note)
     const secondary = document.createElement('div');
     secondary.className = 'account-secondary';
 
+    // Phone Number
+    const phoneEl = document.createElement('div');
+    phoneEl.className = 'account-phone';
     if (account.phoneNumber) {
-      secondary.textContent = account.phoneNumber;
-      secondary.title = account.phoneNumber;
-    } else if (account.note) {
-      secondary.textContent = account.note;
-      secondary.title = account.note;
+      phoneEl.textContent = account.phoneNumber;
+      // Removed title
+      phoneEl.onclick = (e) => {
+        e.stopPropagation();
+        copyToClipboard(account.phoneNumber, phoneEl);
+      };
     } else {
-      secondary.textContent = '无号码';
+      phoneEl.style.display = 'none';
     }
+    secondary.appendChild(phoneEl);
+
+    // Note (Editable)
+    const noteEl = document.createElement('div');
+    noteEl.className = 'account-note';
+    noteEl.contentEditable = true;
+    noteEl.textContent = account.note || '';
+    // Removed redundant title for note
+
+    // Stop propagation for click to prevent selecting account
+    noteEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+
+    // Handle Note Save
+    noteEl.addEventListener('blur', () => {
+      const newNote = noteEl.textContent.trim();
+      if (newNote !== (account.note || '')) {
+        saveAccountNote(account.id, newNote);
+        account.note = newNote; // Optimistic update
+
+        // Update collapsed display name immediately
+        const collapsedNameEl = item.querySelector('.account-collapsed-name');
+        if (collapsedNameEl) {
+          collapsedNameEl.textContent = newNote || account.profileName || account.name || '未命名';
+        }
+      }
+    });
+
+    // Auto-save on mouse leave (as requested)
+    noteEl.addEventListener('mouseleave', () => {
+      if (document.activeElement === noteEl) {
+        noteEl.blur();
+      }
+    });
+
+    // Handle Enter key to save
+    noteEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        noteEl.blur();
+      }
+    });
+
+    secondary.appendChild(noteEl);
 
     info.appendChild(header);
     info.appendChild(secondary);
+
+    // Collapsed display name (shows note or nickname when sidebar is collapsed)
+    const collapsedName = document.createElement('div');
+    collapsedName.className = 'account-collapsed-name';
+    // Priority: note > profileName > name
+    collapsedName.textContent = account.note || account.profileName || account.name || '未命名';
+    info.appendChild(collapsedName);
 
     // Quick Actions (Hover only)
     const actions = document.createElement('div');
@@ -481,6 +546,9 @@
     // Apply profile info (真实头像 / 昵称 / 号码）如果已知
     applyAccountProfileToItem(account, item);
 
+    // Fetch and render IP info
+    setTimeout(() => fetchAndRenderIPInfo(account, item), 10); // Non-blocking
+
     return item;
   }
 
@@ -503,7 +571,7 @@
     const nameEl = item.querySelector('.account-name');
     if (nameEl) {
       nameEl.textContent = displayName;
-      nameEl.title = displayName;
+      // Removed redundant title
     }
 
     // 更新头像
@@ -529,27 +597,175 @@
       }
     }
 
-    // 更新号码
+    // 更新号码和备注
     const secondaryEl = item.querySelector('.account-secondary');
     if (secondaryEl) {
+      // Update Phone
+      let phoneEl = secondaryEl.querySelector('.account-phone');
+      if (!phoneEl) {
+        phoneEl = document.createElement('div');
+        phoneEl.className = 'account-phone';
+        secondaryEl.insertBefore(phoneEl, secondaryEl.firstChild);
+      }
+
       if (account.phoneNumber) {
-        secondaryEl.textContent = account.phoneNumber;
-        secondaryEl.title = account.phoneNumber;
-      } else if (account.note) {
-        secondaryEl.textContent = account.note;
-        secondaryEl.title = account.note;
+        phoneEl.textContent = account.phoneNumber;
+        // Removed redundant title
+        phoneEl.style.display = '';
+        phoneEl.onclick = (e) => {
+          e.stopPropagation();
+          copyToClipboard(account.phoneNumber, phoneEl);
+        };
       } else {
-        secondaryEl.textContent = '无号码';
+        phoneEl.style.display = 'none';
+      }
+
+      // Update Note (only if not currently focused to avoid overwriting user input)
+      let noteEl = secondaryEl.querySelector('.account-note');
+      if (noteEl && document.activeElement !== noteEl) {
+        noteEl.textContent = account.note || '';
       }
     }
+
+    // Update collapsed display name (priority: note > profileName > name)
+    const collapsedNameEl = item.querySelector('.account-collapsed-name');
+    if (collapsedNameEl) {
+      collapsedNameEl.textContent = account.note || account.profileName || account.name || '未命名';
+    }
+  }
+
+  /**
+   * Fetch and render IP information for an account
+   * @param {Object} account - Account object
+   * @param {HTMLElement} item - Account item element
+   */
+  async function fetchAndRenderIPInfo(account, item) {
+    if (!account || !item || !window.electronAPI) return;
+
+    // Check if IP info container already exists
+    let ipContainer = item.querySelector('.account-ip-info');
+    if (!ipContainer) {
+      ipContainer = document.createElement('div');
+      ipContainer.className = 'account-ip-info';
+
+      // Insert after info block but before actions
+      const infoBlock = item.querySelector('.account-info');
+      if (infoBlock) {
+        infoBlock.appendChild(ipContainer);
+      }
+    }
+
+    // Render loading state initially if empty
+    if (!ipContainer.hasChildNodes()) {
+      ipContainer.innerHTML = '<div class="ip-row"><span class="loading-dots">获取IP信息</span></div>';
+    }
+
+    try {
+      // Fetch network info from main process
+      const result = await window.electronAPI.invoke('env:get-account-network-info', account.id);
+
+      if (result.success) {
+        renderIPDetails(ipContainer, result);
+        // Cache result on account object if needed for avoiding re-fetch too often
+        account.lastIPInfo = result;
+      } else {
+        renderIPError(ipContainer, result.error);
+      }
+    } catch (error) {
+      console.error(`[Sidebar] Failed to fetch IP info for account ${account.id}:`, error);
+      // Show actual error message for debugging (e.g., "No handler registered")
+      const errorMsg = error.message && error.message.includes('No handler')
+        ? '需重启应用'
+        : (error.message || '获取失败');
+      renderIPError(ipContainer, errorMsg, error.message);
+    }
+  }
+
+  /**
+   * Render IP details into container (Simplified Version)
+   */
+  function renderIPDetails(container, info) {
+    container.innerHTML = '';
+
+    // Simplification: One compact row
+    const row = document.createElement('div');
+    row.className = 'ip-row compact';
+
+    // Icon instead of Tag
+    const iconSpan = document.createElement('span');
+    iconSpan.className = `ip-icon ${info.isProxy ? 'proxy' : 'local'}`;
+    // Use simple visual indicators: Plane for proxy, House for local
+    iconSpan.textContent = info.isProxy ? '✈️' : '🏠';
+    // Removed redundant title
+    row.appendChild(iconSpan);
+
+    // IP Address (Masked by default)
+    const ipSpan = document.createElement('span');
+    ipSpan.className = 'ip-address';
+    const fullIP = info.ip;
+    // Simple mask: last two segments
+    const maskedIP = info.ip.replace(/\.\d+\.\d+$/, '.*.*').replace(/:\w+:\w+$/, ':*:*');
+    ipSpan.textContent = maskedIP;
+    ipSpan.dataset.full = fullIP;
+    ipSpan.dataset.masked = maskedIP;
+    ipSpan.dataset.visible = 'false';
+    ipSpan.title = '点击切换显示完整IP';
+
+    const toggleVisibility = (e) => {
+      e.stopPropagation();
+      const isVisible = ipSpan.dataset.visible === 'true';
+      if (isVisible) {
+        ipSpan.textContent = ipSpan.dataset.masked;
+        ipSpan.dataset.visible = 'false';
+      } else {
+        ipSpan.textContent = ipSpan.dataset.full;
+        ipSpan.dataset.visible = 'true';
+      }
+    };
+    ipSpan.addEventListener('click', toggleVisibility);
+    row.appendChild(ipSpan);
+
+    // Location
+    if (info.location) {
+      // Just set tooltips for row or ipSpan, don't show text
+      // Requirement: hover IP -> show "Vietnam, Nha Trang"
+      // So we append the location info to the IP's title, OR we keep the flag.
+      // User said: "I hope when mouse move to IP show... Vietnam, Nha Trang" and "No need to display VN Vietnam directly"
+
+      const country = info.location.country || info.location.countryCode || '';
+      const city = info.location.city ? `, ${info.location.city}` : '';
+      const fullLocation = `${country}${city}`;
+
+      // Update IP title to include location
+      ipSpan.title = `点击切换显示完整IP\n位置: ${fullLocation}`;
+
+      // OPTIONAL: If user wants NO text "VN Vietnam" displayed at all, we remove the locSpan creation.
+      // Based on: "不需要直接显示VN Vietnam" (No need to display VN Vietnam directly)
+      // So we ONLY show IP and Icon.
+
+      // However, user screenshot shows flag? No, user screenshot shows "183.80.*.* VN Vietnam" and says "Don't want this".
+      // So we just remove the location span entirely from visual flow.
+    }
+
+    container.appendChild(row);
+  }
+
+  function renderIPError(container, message, fullError) {
+    container.innerHTML = `<div class="ip-row compact" title="${fullError || ''}"><span class="ip-icon error">⚠️</span> <span class="ip-meta">${message}</span></div>`;
+  }
+
+  function getFlagEmoji(countryCode) {
+    if (!countryCode) return '';
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt());
+    return String.fromCodePoint(...codePoints);
   }
 
   /**
    * 渲染账号的状态展示（文本 + class + tooltip）
    * 统一处理 loginStatus / connectionStatus / hasQRCode / error 等字段
-   */
-  /**
-   * Render status dot
    */
   function renderStatusDot(account, dotElement) {
     if (!dotElement || !account) return;
@@ -567,19 +783,18 @@
       dotElement.title = '需要登录';
     } else if (statusValue === 'online') {
       dotElement.classList.add('online');
-      dotElement.title = '在线';
+      // No title for online
     } else if (statusValue === 'loading') {
       dotElement.classList.add('loading');
-      dotElement.title = '加载中...';
+      // No title for loading (animation implies it)
     } else if (statusValue === 'error') {
       dotElement.classList.add('error');
       dotElement.title = (error && error.message) || '连接错误';
     } else {
       dotElement.classList.add('offline');
-      dotElement.title = '离线';
+      // No title for offline
     }
   }
-
   /**
    * Render quick actions (Open/Close)
    */
@@ -694,12 +909,52 @@
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
   }
 
-  function copyToClipboard(text) {
+  function copyToClipboard(text, element) {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
-      // Optional: show toast
       console.log('Copied to clipboard');
+      if (element) {
+        const originalColor = element.style.color;
+        element.style.color = '#25d366'; // Success color
+
+        // Show simplified feedback
+        const originalText = element.textContent;
+        element.textContent = '已复制';
+
+        setTimeout(() => {
+          element.style.color = originalColor;
+          element.textContent = originalText;
+        }, 1000);
+      }
     });
+  }
+
+  /**
+   * Save account note
+   */
+  async function saveAccountNote(accountId, note) {
+    if (!window.electronAPI) return;
+
+    // Anti-debounce: cancel existing timer for this account if any
+    const timerKey = `note-${accountId}`;
+    if (updateTimers.has(timerKey)) {
+      clearTimeout(updateTimers.get(timerKey));
+    }
+
+    // Set new timer
+    const timerId = setTimeout(async () => {
+      try {
+        await window.electronAPI.invoke('update-account', accountId, { note });
+        console.log(`[Sidebar] Note saved for account ${accountId}`);
+      } catch (error) {
+        console.error('Failed to save note:', error);
+        // Optionally revert UI if failed
+      } finally {
+        updateTimers.delete(timerKey);
+      }
+    }, 300); // 300ms debounce
+
+    updateTimers.set(timerKey, timerId);
   }
 
   /**
@@ -977,7 +1232,7 @@
    */
   function handleAccountsUpdated(accountsData) {
     const newAccounts = accountsData || [];
-    
+
     // 创建旧账号状态的映射，用于保留运行状态
     const oldAccountStatusMap = new Map();
     accounts.forEach(acc => {
@@ -1375,6 +1630,92 @@
     alert(message);
   }
 
+  /**
+   * Toggle sidebar collapsed state
+   */
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    const isCollapsed = sidebar.dataset.collapsed === 'true';
+    const newState = !isCollapsed;
+    const newWidth = newState ? 80 : 219;
+
+    sidebar.dataset.collapsed = String(newState);
+
+    // Update CSS variables for sidebar width
+    document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
+    document.documentElement.style.setProperty('--sidebar-collapsed-width', `${newWidth}px`);
+
+    // Update toggle button title
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    if (toggleBtn) {
+      toggleBtn.title = newState ? '展开侧边栏' : '收起侧边栏';
+    }
+
+    // Save state to localStorage
+    try {
+      localStorage.setItem('sidebar-collapsed', String(newState));
+    } catch (e) {
+      console.warn('Failed to save sidebar state:', e);
+    }
+
+    // Notify main process about sidebar resize for BrowserView adjustment
+    if (window.electronAPI) {
+      // Use both methods for compatibility
+      // 1. Primary: invoke resize-sidebar handler
+      window.electronAPI.invoke('resize-sidebar', newWidth).catch(err => {
+        console.warn('Failed to invoke resize-sidebar:', err);
+      });
+
+      // 2. Fallback: send sidebar-resized event
+      window.electronAPI.send('sidebar-resized', newWidth);
+
+      console.log(`[Sidebar] Toggled to ${newState ? 'collapsed' : 'expanded'}, width: ${newWidth}px`);
+    }
+  }
+
+  /**
+   * Restore sidebar collapsed state from localStorage
+   */
+  function restoreSidebarState() {
+    try {
+      const savedState = localStorage.getItem('sidebar-collapsed');
+      if (savedState === 'true') {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+          const collapsedWidth = 80;
+          sidebar.dataset.collapsed = 'true';
+
+          // Update CSS variables for sidebar width
+          document.documentElement.style.setProperty('--sidebar-width', `${collapsedWidth}px`);
+          document.documentElement.style.setProperty('--sidebar-collapsed-width', `${collapsedWidth}px`);
+
+          // Update toggle button title
+          const toggleBtn = document.getElementById('sidebar-toggle');
+          if (toggleBtn) {
+            toggleBtn.title = '展开侧边栏';
+          }
+
+          // Notify main process about the collapsed state
+          if (window.electronAPI) {
+            // Use both methods for compatibility
+            window.electronAPI.invoke('resize-sidebar', collapsedWidth).catch(err => {
+              console.warn('Failed to invoke resize-sidebar:', err);
+            });
+
+            // Fallback: send sidebar-resized event
+            window.electronAPI.send('sidebar-resized', collapsedWidth);
+
+            console.log(`[Sidebar] Restored collapsed state, width: ${collapsedWidth}px`);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to restore sidebar state:', e);
+    }
+  }
+
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -1390,6 +1731,7 @@
     getAccounts: () => accounts,
     getActiveAccountId: () => activeAccountId,
     renderQuickActions,
-    syncAccountStatusesWithRunningStatus
+    syncAccountStatusesWithRunningStatus,
+    toggleSidebar
   };
 })();

@@ -5,7 +5,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -18,6 +19,7 @@ html, body {
 :root {
   --translate-panel-width-expanded: 420px;
   --translate-panel-width-collapsed: 56px;
+  --sidebar-collapsed-width: 80px;
 }
 
 /* ===== Main App Container ===== */
@@ -30,8 +32,8 @@ html, body {
 
 /* ===== Sidebar Styles ===== */
 #sidebar {
-  width: var(--sidebar-width, 300px);
-  min-width: 200px;
+  width: var(--sidebar-width, 219px);
+  min-width: 80px;
   max-width: 500px;
   height: 100%;
   background-color: #fff;
@@ -203,43 +205,47 @@ html, body {
 .account-item {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  margin-bottom: 4px;
-  background: transparent;
-  border-radius: 8px;
+  padding: 12px 12px 12px 8px;
+  margin-bottom: 8px;
+  /* Increase spacing */
+  background: #fff;
+  border-radius: 12px;
+  /* Smoother corners */
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border: 1px solid transparent;
+  border: 1px solid #e9edef;
+  /* Subtle border */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  /* Subtle shadow */
   user-select: none;
 }
 
 .account-item:hover {
-  background-color: #f5f6f7;
+  background-color: #fff;
+  border-color: #d1d7db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Lift effect */
+  transform: translateY(-1px);
+  z-index: 1;
 }
 
 .account-item.active {
-  background-color: #e8f5e9;
-  border-color: transparent;
-}
-
-.account-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 20px;
-    background-color: #25d366;
-    border-radius: 0 3px 3px 0;
+  background-color: #e0f7fa;
+  /* Light Lake Blue */
+  border-color: #00bcd4;
+  /* Lake Blue */
+  box-shadow: 0 4px 14px rgba(0, 188, 212, 0.2);
+  transform: translateY(-1px);
+  z-index: 2;
 }
 
 /* Avatar & Status */
+/* Avatar & Status */
 .account-avatar-container {
-    position: relative;
-    margin-right: 12px;
-    flex-shrink: 0;
+  position: relative;
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
 .account-avatar {
@@ -253,39 +259,52 @@ html, body {
   color: white;
   font-weight: 600;
   font-size: 18px;
-  border: 1px solid rgba(0,0,0,0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  /* Ensure image stays inside */
 }
 
 .account-avatar img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
   object-fit: cover;
+  display: block;
 }
 
 .status-dot {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid #fff;
-    background-color: #ccc; /* offline default */
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background-color: #ccc;
+  z-index: 2;
 }
 
-.status-dot.online { background-color: #25d366; }
-.status-dot.warning { background-color: #ff9800; }
-.status-dot.error { background-color: #f44336; }
-.status-dot.loading { 
-    background-color: #2196f3;
-    animation: pulse 1.5s infinite;
+.status-dot.online {
+  background-color: #25d366;
+}
+
+.status-dot.warning {
+  background-color: #ff9800;
+}
+
+.status-dot.error {
+  background-color: #f44336;
+}
+
+.status-dot.loading {
+  background-color: #2196f3;
+  animation: pulse 1.5s infinite;
 }
 
 /* Info */
 .account-info {
   flex: 1;
   min-width: 0;
+  /* Critical for text-overflow to work */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -293,9 +312,9 @@ html, body {
 }
 
 .account-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .account-name {
@@ -308,21 +327,76 @@ html, body {
 }
 
 .account-secondary {
-    font-size: 12px;
-    color: #666;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
 }
 
-/* Actions */
-.account-actions {
+.account-phone {
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.2s;
   display: flex;
   align-items: center;
   gap: 4px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  margin-left: 8px;
+}
+
+.account-phone:hover {
+  color: #00bcd4;
+  /* Lake Blue */
+  text-decoration: underline;
+}
+
+.account-phone:active {
+  color: #00acc1;
+}
+
+.account-note {
+  font-size: 13px;
+  color: #111;
+  font-weight: 500;
+  background-color: transparent;
+  border: 1px solid transparent;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 2px 2px;
+  border-radius: 4px;
+  cursor: text;
+  transition: background-color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+.account-note:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.account-note:focus {
+  background-color: #fff;
+  border-color: transparent;
+  outline: none;
+  color: #000;
+  box-shadow: none;
+}
+
+.account-note:empty::before {
+  content: '添加备注...';
+  color: #888;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.account-note:not(:empty) {
+  color: #000;
+  border-color: transparent;
 }
 
 .account-item:hover .account-actions {
@@ -330,93 +404,112 @@ html, body {
 }
 
 .action-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    border: none;
-    background: transparent;
-    color: #666;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: all 0.2s;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s;
 }
 
 .action-btn:hover {
-    background-color: #e0e0e0;
-    color: #333;
+  background-color: #e0e0e0;
+  color: #333;
 }
 
-.action-btn.start { color: #25d366; }
-.action-btn.start:hover { background-color: #e8f5e9; }
+.action-btn.start {
+  color: #00bcd4;
+}
 
-.action-btn.stop { color: #f44336; }
-.action-btn.stop:hover { background-color: #ffebee; }
+.action-btn.start:hover {
+  background-color: #e0f7fa;
+}
 
-.action-btn.retry { color: #ff9800; }
+.action-btn.stop {
+  color: #f44336;
+}
+
+.action-btn.stop:hover {
+  background-color: #ffebee;
+}
+
+.action-btn.retry {
+  color: #ff9800;
+}
 
 .mini-spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(0,0,0,0.1);
-    border-top-color: #25d366;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #25d366;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 /* Context Menu */
 .custom-context-menu {
-    position: fixed;
-    background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    border: 1px solid #e0e0e0;
-    padding: 4px 0;
-    min-width: 160px;
-    z-index: 9999;
-    animation: fadeIn 0.1s ease-out;
+  position: fixed;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  padding: 4px 0;
+  min-width: 160px;
+  z-index: 9999;
+  animation: fadeIn 0.1s ease-out;
 }
 
 .menu-item {
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-size: 13px;
-    color: #333;
-    transition: background 0.1s;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  transition: background 0.1s;
 }
 
 .menu-item:hover {
-    background-color: #f5f5f5;
+  background-color: #f5f5f5;
 }
 
 .menu-item.danger {
-    color: #f44336;
+  color: #f44336;
 }
 
 .menu-item.danger:hover {
-    background-color: #ffebee;
+  background-color: #ffebee;
 }
 
 .menu-icon {
-    width: 16px;
-    text-align: center;
-    font-size: 14px;
+  width: 16px;
+  text-align: center;
+  font-size: 14px;
 }
 
 .menu-separator {
-    height: 1px;
-    background-color: #e0e0e0;
-    margin: 4px 0;
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 4px 0;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
-    to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ===== Tooltip Styles ===== */
@@ -587,7 +680,7 @@ html, body {
     top: 0;
     bottom: 0;
     z-index: 1000;
-    box-shadow: -4px 0 16px rgba(0,0,0,0.15);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -623,7 +716,8 @@ html, body {
 
 .translate-panel[data-state="collapsed"] .translate-panel-text {
   display: inline-block;
-  font-size: 12px; /* 在收起状态下使用较小字体 */
+  font-size: 12px;
+  /* 在收起状态下使用较小字体 */
 }
 
 .translate-panel[data-state="collapsed"] .translate-panel-icon {
@@ -641,7 +735,8 @@ html, body {
 
 /* 在收起状态下调整标题布局 */
 .translate-panel[data-state="collapsed"] .translate-panel-title {
-  flex-direction: column; /* 图标和文字垂直排列 */
+  flex-direction: column;
+  /* 图标和文字垂直排列 */
   gap: 2px;
 }
 
@@ -730,42 +825,42 @@ html, body {
 /* ===== Responsive Adjustments ===== */
 @media (max-width: 1000px) {
   #sidebar {
-    width: var(--sidebar-width, 250px);
-    min-width: 180px;
+    width: var(--sidebar-width, 219px);
+    min-width: 80px;
   }
-  
+
   .sidebar-header h2 {
     font-size: 16px;
   }
-  
+
   .btn-primary .text {
     display: none;
   }
-  
+
   .account-note {
     display: none;
   }
-  
+
   .account-list {
     padding: 6px;
   }
-  
+
   .account-item {
-    padding: 10px 12px;
+    padding: 10px 12px 10px 6px;
     margin-bottom: 6px;
   }
-  
+
   .account-avatar {
     width: 36px;
     height: 36px;
     font-size: 14px;
     margin-right: 10px;
   }
-  
+
   .account-name {
     font-size: 13px;
   }
-  
+
   .account-note {
     display: none;
   }
@@ -805,7 +900,9 @@ html, body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ===== Smooth Transitions ===== */
@@ -826,6 +923,7 @@ html, body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1065,6 +1163,7 @@ button:focus-visible {
   min-height: 0;
   position: relative;
 }
+
 .translate-panel-menu {
   width: 80px;
   background: #f5f7fa;
@@ -1179,4 +1278,289 @@ button:focus-visible {
 
 .translate-panel-body::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* ===== Account IP Info Styles ===== */
+.account-ip-info {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #888;
+}
+
+.ip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+}
+
+.ip-row.compact {
+  flex-wrap: nowrap;
+}
+
+.ip-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.ip-icon.error {
+  color: #d32f2f;
+}
+
+.ip-address {
+  font-family: 'Consolas', monospace;
+  color: #555;
+  cursor: pointer;
+}
+
+.ip-address:hover {
+  text-decoration: underline;
+  color: #333;
+}
+
+.ip-location {
+  color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  /* Prevent long location from breaking layout */
+}
+
+.ip-meta {
+  color: #888;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loading-dots:after {
+  content: '.';
+  animation: dots 1.5s steps(5, end) infinite;
+}
+
+@keyframes dots {
+
+  0%,
+  20% {
+    content: '.';
+  }
+
+  40% {
+    content: '..';
+  }
+
+  60% {
+    content: '...';
+  }
+
+  80%,
+  100% {
+    content: '';
+  }
+}
+
+/* ===== Global Tooltip Styles ===== */
+.tooltip {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.85);
+  /* Slightly darker for better contrast */
+  color: white;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  /* Preserve newlines */
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  max-width: 250px;
+  text-align: center;
+}
+
+.tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+
+.tooltip.bottom {
+  transform: translateY(-5px);
+  /* Animation from top-down */
+}
+
+.tooltip.bottom.show {
+  transform: translateY(0);
+}
+
+/* ===== Sidebar Collapsed State ===== */
+:root {
+  --sidebar-collapsed-width: 80px;
+  --sidebar-expanded-width: 300px;
+  --sidebar-transition-duration: 0.3s;
+}
+
+/* Header actions container */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Toggle button */
+.sidebar-toggle-btn {
+  transition: transform var(--sidebar-transition-duration) ease;
+}
+
+.sidebar-toggle-btn .icon {
+  font-size: 14px;
+}
+
+/* Sidebar collapsed state */
+#sidebar[data-collapsed="true"] {
+  width: var(--sidebar-collapsed-width) !important;
+  min-width: var(--sidebar-collapsed-width) !important;
+}
+
+#sidebar[data-collapsed="true"] .sidebar-toggle-btn {
+  transform: rotate(180deg);
+}
+
+#sidebar[data-collapsed="true"] .sidebar-title,
+#sidebar[data-collapsed="true"] .search-container,
+#sidebar[data-collapsed="true"] #add-account {
+  display: none;
+}
+
+#sidebar[data-collapsed="true"] .sidebar-header {
+  padding: 12px 8px;
+}
+
+#sidebar[data-collapsed="true"] .header-top {
+  justify-content: center;
+}
+
+#sidebar[data-collapsed="true"] .header-actions {
+  gap: 0;
+}
+
+/* Account item in collapsed state */
+#sidebar[data-collapsed="true"] .account-item {
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px;
+  text-align: center;
+}
+
+#sidebar[data-collapsed="true"] .account-avatar-container {
+  margin-right: 0;
+  margin-bottom: 6px;
+}
+
+#sidebar[data-collapsed="true"] .account-avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+}
+
+#sidebar[data-collapsed="true"] .account-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#sidebar[data-collapsed="true"] .account-header {
+  display: none;
+}
+
+/* Show collapsed display name only in collapsed state */
+#sidebar[data-collapsed="true"] .account-collapsed-name {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+  text-align: center;
+}
+
+/* Hide secondary info (phone, note editor) in collapsed mode */
+#sidebar[data-collapsed="true"] .account-secondary {
+  display: none;
+}
+
+/* Hide IP info in collapsed mode */
+#sidebar[data-collapsed="true"] .account-ip-info {
+  display: none;
+}
+
+/* Hide quick actions in collapsed mode - show on hover */
+#sidebar[data-collapsed="true"] .account-actions {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+#sidebar[data-collapsed="true"] .account-item:hover .account-actions {
+  opacity: 1;
+}
+
+/* Empty state in collapsed mode */
+#sidebar[data-collapsed="true"] .empty-state {
+  padding: 20px 8px;
+}
+
+#sidebar[data-collapsed="true"] .empty-state .empty-icon {
+  font-size: 32px;
+}
+
+#sidebar[data-collapsed="true"] .empty-state h3,
+#sidebar[data-collapsed="true"] .empty-state p {
+  display: none;
+}
+
+/* Expanded state - hide collapsed name */
+#sidebar[data-collapsed="false"] .account-collapsed-name {
+  display: none;
+}
+
+/* Transition for sidebar */
+#sidebar {
+  transition: width var(--sidebar-transition-duration) ease,
+    min-width var(--sidebar-transition-duration) ease;
+}
+
+/* Account list scrollbar in collapsed mode */
+#sidebar[data-collapsed="true"] .account-list {
+  padding: 6px 4px;
+}
+
+#sidebar[data-collapsed="true"] .account-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+/* Status dot position adjustment in collapsed mode */
+#sidebar[data-collapsed="true"] .status-dot {
+  width: 10px;
+  height: 10px;
+  bottom: -1px;
+  right: -1px;
+}
+
+/* Hide resize handle when sidebar is collapsed */
+#sidebar[data-collapsed="true"]~.resize-handle {
+  display: none;
 }

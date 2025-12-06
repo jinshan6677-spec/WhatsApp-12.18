@@ -16,13 +16,18 @@
 <body>
   <div id="app">
     <!-- Sidebar for account management -->
-    <div id="sidebar">
+    <div id="sidebar" data-collapsed="false">
       <div class="sidebar-header">
         <div class="header-top">
-          <h2>账号列表</h2>
-          <button id="add-account" class="btn-icon" title="添加新账号">
-            <span class="icon">+</span>
-          </button>
+          <h2 class="sidebar-title">账号列表</h2>
+          <div class="header-actions">
+            <button id="sidebar-toggle" class="btn-icon sidebar-toggle-btn" title="收起侧边栏">
+              <span class="icon">◀</span>
+            </button>
+            <button id="add-account" class="btn-icon" title="添加新账号">
+              <span class="icon">+</span>
+            </button>
+          </div>
         </div>
         <div class="search-container">
           <input type="text" id="account-search" placeholder="搜索账号..." autocomplete="off">
@@ -35,7 +40,7 @@
         <div class="empty-state" id="empty-state">
           <div class="empty-icon">📱</div>
           <h3>暂无账号</h3>
-          <p>点击上方“添加”按钮创建您的第一个 WhatsApp 账号</p>
+          <p>点击上方"添加"按钮创建您的第一个 WhatsApp 账号</p>
         </div>
 
         <!-- Account items will be dynamically inserted here -->
@@ -69,7 +74,7 @@
 
       <!-- Environment Settings Panel Body -->
       <div class="translate-panel-body" id="environment-panel-body" style="display: none;">
-        
+
         <div id="environment-settings-host"></div>
       </div>
 
@@ -78,12 +83,16 @@
         <button class="panel-menu-btn active" data-panel="translate" title="翻译设置">
           <span class="menu-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 8L11 14L11.5 13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M4 14L10 8L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 5H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M7 2H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M22 22L17 12L12 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M14 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 8L11 14L11.5 13.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M4 14L10 8L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M2 5H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M7 2H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M22 22L17 12L12 22" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M14 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
             </svg>
           </span>
           <span class="menu-label">翻译设置</span>
@@ -92,8 +101,10 @@
         <button class="panel-menu-btn" data-panel="environment" title="环境设置">
           <span class="menu-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22S20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 22S20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M9 12L11 14L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
             </svg>
           </span>
           <span class="menu-label">环境设置</span>

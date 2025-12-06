@@ -55,6 +55,7 @@ const invokeChannels = [
   'env:save-config',
   'env:test-proxy',
   'env:detect-network',
+  'env:get-account-network-info',
   'env:get-proxy-configs',
   'env:save-proxy-config',
   'env:delete-proxy-config',
@@ -81,8 +82,8 @@ const invokeChannels = [
   'recovery:stop-monitor',
   'recovery:get-status',
   'recovery:get-all-status',
-  'recovery:retry-operation'
-  ,
+  'recovery:retry-operation',
+  'resize-sidebar',
   // Migration invoke
   'migration:start'
 ];

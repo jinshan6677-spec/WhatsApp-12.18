@@ -226,7 +226,35 @@ contextBridge.exposeInMainWorld('llmAPI', {
   }
 });
 
+// Expose electronAPI for WhatsApp Web profile extraction
+// This allows the injected scripts to communicate with the main process
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Update account profile (nickname, avatar, phone number)
+  invoke: (channel, data) => {
+    const allowedChannels = ['view:update-profile'];
+    if (allowedChannels.includes(channel)) {
+      return ipcRenderer.invoke(channel, data);
+    }
+    console.warn(`[Preload-View] Channel not allowed: ${channel}`);
+    return Promise.reject(new Error(`Channel not allowed: ${channel}`));
+  },
+
+  // Send a message to main process (fire and forget)
+  send: (channel, data) => {
+    const allowedChannels = ['account-profile-update'];
+    if (allowedChannels.includes(channel)) {
+      ipcRenderer.send(channel, data);
+    } else {
+      console.warn(`[Preload-View] Channel not allowed: ${channel}`);
+    }
+  },
+
+  // Get current account ID
+  getAccountId: () => accountId
+});
+
 console.log('[Preload-View] Translation API exposed');
+console.log('[Preload-View] electronAPI exposed for profile extraction');
 
 /**
  * Inject a script file into the page
@@ -425,6 +453,39 @@ window.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
       console.error('[Preload-View] Fallback injection failed:', e);
     }
+  }
+});
+
+// Inject profile auto-extraction script
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Wait a bit for the page to stabilize
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Path to the auto-extraction script
+    const scriptPath = path.join(__dirname, '../scripts/whatsapp-profile-autoextract.js');
+
+    // Check if file exists
+    if (fs.existsSync(scriptPath)) {
+      const scriptContent = await fs.promises.readFile(scriptPath, 'utf8');
+
+      // Inject the script with account ID
+      const wrappedScript = `
+        window.ACCOUNT_ID = '${accountId}';
+        ${scriptContent}
+      `;
+
+      const script = document.createElement('script');
+      script.textContent = wrappedScript;
+      script.id = 'whatsapp-profile-autoextract';
+      (document.head || document.documentElement).appendChild(script);
+
+      console.log('[Preload-View] ✓ Profile auto-extraction script injected');
+    } else {
+      console.log('[Preload-View] Profile auto-extraction script not found:', scriptPath);
+    }
+  } catch (error) {
+    console.error('[Preload-View] Failed to inject profile extraction script:', error);
   }
 });
 

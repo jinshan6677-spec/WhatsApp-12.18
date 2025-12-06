@@ -3,7 +3,7 @@
  * Provides tooltips, drag-to-reorder, loading spinners, and keyboard shortcuts help
  */
 
-(function() {
+(function () {
   'use strict';
 
   // State
@@ -35,7 +35,7 @@
     // Add tooltip listeners to elements with title attribute
     document.addEventListener('mouseover', handleTooltipShow);
     document.addEventListener('mouseout', handleTooltipHide);
-    document.addEventListener('mousemove', handleTooltipMove);
+    // Removed mousemove to prevent "jumping" effect and improve performance
   }
 
   /**
@@ -54,10 +54,10 @@
       target.title = '';
     }
 
-    // Show tooltip after delay
+    // Show tooltip after short delay (fast response)
     tooltipTimeout = setTimeout(() => {
       showTooltip(target, target.dataset.originalTitle);
-    }, 500);
+    }, 100); // Reduced from 500ms to 100ms
   }
 
   /**
@@ -69,24 +69,30 @@
 
     clearTimeout(tooltipTimeout);
     hideTooltip();
-  }
 
-  /**
-   * Update tooltip position on mouse move
-   */
-  function handleTooltipMove(e) {
-    if (tooltipElement.classList.contains('show')) {
-      positionTooltip(e.clientX, e.clientY);
+    // Restore title on hide? No, keep it in dataset to avoid browser tooltip conflict
+    // But if we don't restore, dynamic title updates won't be seen unless we handle mutation.
+    // For now, let's restore it to be safe for updates, 
+    // BUT restoring it immediately might trigger browser tooltip if mouse is still there?
+    // Let's leave it in dataset. If the app updates 'title', it won't update 'dataset.originalTitle' automatically.
+    // This is a known limitation of this simple implementation. 
+    // However, for IP tooltip, we set 'title' when rendering.
+
+    // Actually, if we want to support dynamic updates, we should probably observe mutations or
+    // just put it back on mouseout.
+    if (target.dataset.originalTitle) {
+      target.title = target.dataset.originalTitle;
+      delete target.dataset.originalTitle;
     }
   }
 
   /**
-   * Show tooltip at position
+   * Show tooltip at position (Relative to element, fixed)
    */
   function showTooltip(element, text) {
     if (!text) return;
 
-    tooltipElement.textContent = text;
+    tooltipElement.innerText = text; // Use innerText to handle \n
     tooltipElement.classList.add('show');
 
     // Position tooltip
@@ -96,12 +102,12 @@
     // Determine best position (prefer top, then bottom)
     let position = 'top';
     let x = rect.left + rect.width / 2;
-    let y = rect.top - tooltipRect.height - 10;
+    let y = rect.top - tooltipRect.height - 6; // 6px gap
 
     if (y < 10) {
       // Not enough space on top, show below
       position = 'bottom';
-      y = rect.bottom + 10;
+      y = rect.bottom + 6;
     }
 
     // Adjust horizontal position if tooltip goes off screen
@@ -112,7 +118,9 @@
     }
 
     tooltipElement.className = `tooltip ${position} show`;
-    positionTooltip(x, y);
+    // Use fixed position
+    tooltipElement.style.left = `${x - tooltipRect.width / 2}px`;
+    tooltipElement.style.top = `${y}px`;
   }
 
   /**
@@ -206,7 +214,7 @@
       pointer-events: none;
       transition: all 0.3s ease;
     `;
-    
+
     element.style.position = 'relative';
     element.appendChild(feedback);
 
@@ -367,7 +375,7 @@
 
         // Show success feedback
         showReorderFeedback(targetItem, '已重新排序');
-        
+
         // 确保排序后状态正确恢复
         setTimeout(() => {
           // 先重新加载账号数据，确保DOM是最新的
@@ -383,7 +391,7 @@
                     if (account.loginStatus === true && (account.runningStatus === 'loading' || account.runningStatus === 'not_started')) {
                       account.runningStatus = 'connected';
                       account.isRunning = true;
-                      
+
                       // 更新该账号的按钮显示
                       const item = document.querySelector(`[data-account-id="${account.id}"]`);
                       if (item) {
@@ -403,10 +411,10 @@
       }
     } catch (error) {
       console.error('Failed to reorder accounts:', error);
-      
+
       // Show error feedback
       showReorderFeedback(targetItem, '排序失败', true);
-      
+
       // Reload accounts to restore correct order
       setTimeout(() => {
         if (window.sidebar && window.sidebar.loadAccounts) {
@@ -511,12 +519,12 @@
   function showShortcutsHelp() {
     const helpPanel = document.querySelector('.shortcuts-help');
     const helpButton = document.querySelector('.help-button');
-    
+
     if (helpPanel) {
       helpPanel.classList.remove('hidden');
       shortcutsHelpVisible = true;
     }
-    
+
     if (helpButton) {
       helpButton.classList.add('hidden');
     }
@@ -528,12 +536,12 @@
   function hideShortcutsHelp() {
     const helpPanel = document.querySelector('.shortcuts-help');
     const helpButton = document.querySelector('.help-button');
-    
+
     if (helpPanel) {
       helpPanel.classList.add('hidden');
       shortcutsHelpVisible = false;
     }
-    
+
     if (helpButton) {
       helpButton.classList.remove('hidden');
     }
@@ -556,7 +564,7 @@
    */
   function handleOperationStart(data) {
     const { operation, accountId } = data;
-    
+
     // Show loading spinner on relevant button
     if (operation === 'create') {
       const addButton = document.getElementById('add-account');
@@ -581,7 +589,7 @@
    */
   function handleOperationComplete(data) {
     const { operation, accountId } = data;
-    
+
     // Remove loading state
     if (operation === 'create') {
       const addButton = document.getElementById('add-account');
@@ -599,7 +607,7 @@
    */
   function handleOperationError(data) {
     const { operation, accountId, error } = data;
-    
+
     // Remove loading state and show error
     if (operation === 'create') {
       const addButton = document.getElementById('add-account');
@@ -617,7 +625,7 @@
         }
       }
     }
-    
+
     console.error(`Operation ${operation} failed:`, error);
   }
 

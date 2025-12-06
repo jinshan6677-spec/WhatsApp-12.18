@@ -23,7 +23,7 @@ let _mainWindow = null;
  */
 function register(dependencies) {
   const { viewManager, mainWindow } = dependencies;
-  
+
   _viewManager = viewManager;
   _mainWindow = mainWindow;
 
@@ -38,8 +38,13 @@ function register(dependencies) {
       // Save the new sidebar width
       mainWindow.setSidebarWidth(sidebarWidth);
 
-      // Update all view bounds with debouncing
-      viewManager.resizeViews(sidebarWidth);
+      // Invalidate bounds cache to force recalculation
+      if (viewManager.boundsManager && typeof viewManager.boundsManager.invalidateCache === 'function') {
+        viewManager.boundsManager.invalidateCache();
+      }
+
+      // Update all view bounds immediately (use immediate: true for collapse/expand)
+      viewManager.resizeViews(sidebarWidth, { immediate: true });
 
       console.log(`[IPC:System] Sidebar resized to ${sidebarWidth}px`);
     } catch (error) {
@@ -70,6 +75,34 @@ function register(dependencies) {
     }
   });
 
+  // Handle sidebar collapse/expand (resize-sidebar)
+  ipcMain.handle('resize-sidebar', (event, sidebarWidth) => {
+    try {
+      if (typeof sidebarWidth !== 'number' || sidebarWidth <= 0) {
+        console.warn('[IPC:System] Invalid sidebar width:', sidebarWidth);
+        return { success: false, error: 'Invalid sidebar width' };
+      }
+
+      // Save the new sidebar width
+      mainWindow.setSidebarWidth(sidebarWidth);
+
+      // Invalidate bounds cache to force recalculation
+      if (viewManager.boundsManager && typeof viewManager.boundsManager.invalidateCache === 'function') {
+        viewManager.boundsManager.invalidateCache();
+        console.log('[IPC:System] View bounds cache invalidated due to sidebar resize');
+      }
+
+      // Update all view bounds immediately for collapse/expand
+      viewManager.resizeViews(sidebarWidth, { immediate: true });
+
+      console.log(`[IPC:System] Sidebar collapsed/expanded to ${sidebarWidth}px`);
+      return { success: true, width: sidebarWidth };
+    } catch (error) {
+      console.error('[IPC:System] Failed to handle sidebar resize:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   console.log('[IPC:System] System handlers registered');
 }
 
@@ -78,12 +111,13 @@ function register(dependencies) {
  */
 function unregister() {
   ipcMain.removeHandler('get-sidebar-width');
+  ipcMain.removeHandler('resize-sidebar');
   ipcMain.removeAllListeners('sidebar-resized');
   ipcMain.removeAllListeners('window-resize-complete');
-  
+
   _viewManager = null;
   _mainWindow = null;
-  
+
   console.log('[IPC:System] System handlers unregistered');
 }
 

@@ -8,11 +8,12 @@
 
   // State
   let isResizing = false;
-  let sidebarWidth = 300; // Default width
+  let sidebarWidth = 219; // Default width
   let lastIpcSendTime = 0;
-  const MIN_SIDEBAR_WIDTH = 200;
+  const MIN_SIDEBAR_WIDTH = 80;
   const MAX_SIDEBAR_WIDTH = 500;
   const IPC_THROTTLE_DELAY = 16; // ~60fps throttle for IPC calls
+  const ALLOW_SIDEBAR_RESIZE = false;
 
   // DOM elements
   const sidebar = document.getElementById('sidebar');
@@ -28,6 +29,7 @@
     setupKeyboardShortcuts();
     setupViewSwitchingFeedback();
     applySidebarWidth(sidebarWidth);
+    observeSidebarCssVar();
 
     // Initialize error display
     if (typeof errorDisplay !== 'undefined') {
@@ -50,7 +52,7 @@
         if (result && result.success && result.width) {
           const width = result.width;
           if (width >= MIN_SIDEBAR_WIDTH && width <= MAX_SIDEBAR_WIDTH) {
-            sidebarWidth = width;
+            sidebarWidth = Math.min(width, 219);
             return;
           }
         }
@@ -64,7 +66,7 @@
     if (saved) {
       const parsed = parseInt(saved, 10);
       if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH && parsed <= MAX_SIDEBAR_WIDTH) {
-        sidebarWidth = parsed;
+        sidebarWidth = Math.min(parsed, 219);
       }
     }
   }
@@ -85,6 +87,7 @@
   function applySidebarWidth(width) {
     sidebar.style.width = `${width}px`;
     document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+    document.documentElement.style.setProperty('--sidebar-collapsed-width', `${width}px`);
 
     // Throttle IPC calls during resize for better performance
     const now = Date.now();
@@ -96,10 +99,33 @@
     }
   }
 
+  function observeSidebarCssVar() {
+    let lastWidth = null;
+    const observer = new MutationObserver(() => {
+      const val = document.documentElement.style.getPropertyValue('--sidebar-width');
+      if (!val) return;
+      const w = parseInt(val.replace('px', ''), 10);
+      if (!isNaN(w) && w !== lastWidth) {
+        lastWidth = w;
+        sidebarWidth = w;
+        if (window.electronAPI) {
+          window.electronAPI.send('sidebar-resized', w);
+        }
+      }
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+  }
+
   /**
    * Setup resize handle drag functionality
    */
   function setupResizeHandle() {
+    if (!ALLOW_SIDEBAR_RESIZE) {
+      if (resizeHandle) {
+        resizeHandle.style.display = 'none';
+      }
+      return;
+    }
     resizeHandle.addEventListener('mousedown', startResize);
     document.addEventListener('mousemove', handleResize);
     document.addEventListener('mouseup', stopResize);

@@ -173,6 +173,56 @@ function register(dependencies) {
         }
     });
 
+    // Get account network information (Proxy vs Local IP)
+    ipcMain.handle('env:get-account-network-info', async (event, accountId) => {
+        try {
+            if (!accountId) {
+                return { success: false, error: 'Account ID is required' };
+            }
+
+            const manager = getEnvConfigManager();
+            const config = manager.getConfig(accountId);
+            const proxyConfig = config.proxy || {};
+
+            let result;
+            let isProxy = false;
+
+            if (proxyConfig.enabled) {
+                // If proxy is enabled, test the proxy connection
+                result = await ProxyValidator.testProxy(proxyConfig, 10000);
+                isProxy = true;
+            } else {
+                // If direct connection, get current network info
+                result = await ProxyValidator.getCurrentNetwork(10000);
+            }
+
+            if (!result.success) {
+                return { success: false, error: result.error, isProxy };
+            }
+
+            return {
+                success: true,
+                ip: result.ip,
+                location: result.location,
+                isp: result.isp,
+                type: result.type,
+                timezone: result.timezone,
+                isProxy: isProxy,
+                proxyConfig: isProxy ? {
+                    host: proxyConfig.host,
+                    protocol: proxyConfig.protocol,
+                    username: proxyConfig.username // Do not return password
+                } : null
+            };
+        } catch (error) {
+            console.error('[EnvironmentIPCHandlers] env:get-account-network-info error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    });
+
     // ==================== Fingerprint Handlers ====================
 
     // Generate a new fingerprint configuration

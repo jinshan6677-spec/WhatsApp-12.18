@@ -56,7 +56,7 @@ class MainWindow {
           height: this.options.height
         },
         isMaximized: false,
-        sidebarWidth: 280,
+        sidebarWidth: 219,
         translationPanel: {
           state: 'full',
           widths: { ...DEFAULT_TRANSLATION_PANEL_WIDTHS }
@@ -348,7 +348,7 @@ class MainWindow {
    * @returns {number} Sidebar width in pixels
    */
   getSidebarWidth() {
-    return this.stateStore.get('sidebarWidth', 280);
+    return this.stateStore.get('sidebarWidth', 219);
   }
 
   /**

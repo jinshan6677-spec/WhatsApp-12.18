@@ -51,6 +51,22 @@ class ProxyValidator {
             // Try multiple providers
             const providers = [
                 {
+                    url: 'https://ipwho.is/?lang=zh-CN',
+                    adapter: (data) => ({
+                        ip: data.ip,
+                        location: {
+                            country: data.country,
+                            countryCode: data.country_code,
+                            city: data.city,
+                            region: data.region,
+                            latitude: data.latitude,
+                            longitude: data.longitude
+                        },
+                        timezone: data.timezone?.id,
+                        isp: data.connection?.isp
+                    })
+                },
+                {
                     url: 'https://ipapi.co/json/',
                     adapter: (data) => ({
                         ip: data.ip,
@@ -66,23 +82,6 @@ class ProxyValidator {
                         isp: data.org
                     })
                 },
-                {
-                    url: 'https://ipwho.is/',
-                    adapter: (data) => ({
-                        ip: data.ip,
-                        location: {
-                            country: data.country,
-                            countryCode: data.country_code,
-                            city: data.city,
-                            region: data.region,
-                            latitude: data.latitude,
-                            longitude: data.longitude
-                        },
-                        timezone: data.timezone?.id,
-                        isp: data.connection?.isp
-                    })
-                },
-                
             ];
 
             let lastError;
@@ -114,6 +113,7 @@ class ProxyValidator {
                         timezone: data.timezone || 'UTC',
                         language: this._getLanguageFromCountry(data.location.countryCode),
                         isp: data.isp || 'Unknown',
+                        type: data.type || 'Unknown',
                         latency: latency,
                         proxyUrl: proxyUrl.replace(/:[^:]*@/, ':****@')
                     };
@@ -149,8 +149,42 @@ class ProxyValidator {
      */
     static async getCurrentNetwork(timeout = 10000) {
         try {
-            // Try multiple providers
+            // Try multiple providers (Chinese-friendly first)
             const providers = [
+                {
+                    url: 'https://ipwho.is/?lang=zh-CN',
+                    adapter: (data) => ({
+                        ip: data.ip,
+                        location: {
+                            country: data.country,
+                            countryCode: data.country_code,
+                            city: data.city,
+                            region: data.region,
+                            latitude: data.latitude,
+                            longitude: data.longitude
+                        },
+                        timezone: data.timezone?.id,
+                        isp: data.connection?.isp,
+                        type: data.connection?.type || 'Unknown'
+                    })
+                },
+                {
+                    url: 'http://ip-api.com/json/?lang=zh-CN',
+                    adapter: (data) => ({
+                        ip: data.query,
+                        location: {
+                            country: data.country,
+                            countryCode: data.countryCode,
+                            city: data.city,
+                            region: data.regionName,
+                            latitude: data.lat,
+                            longitude: data.lon
+                        },
+                        timezone: data.timezone,
+                        isp: data.isp,
+                        type: data.hosting ? 'Commercial/Hosting' : 'ISP'
+                    })
+                },
                 {
                     url: 'https://ipapi.co/json/',
                     adapter: (data) => ({
@@ -164,41 +198,10 @@ class ProxyValidator {
                             longitude: data.longitude
                         },
                         timezone: data.timezone,
-                        isp: data.org
+                        isp: data.org,
+                        type: data.org ? (data.org.toLowerCase().includes('google') || data.org.toLowerCase().includes('amazon') ? 'Commercial/Hosting' : 'ISP') : 'Unknown'
                     })
                 },
-                {
-                    url: 'https://ipwho.is/',
-                    adapter: (data) => ({
-                        ip: data.ip,
-                        location: {
-                            country: data.country,
-                            countryCode: data.country_code,
-                            city: data.city,
-                            region: data.region,
-                            latitude: data.latitude,
-                            longitude: data.longitude
-                        },
-                        timezone: data.timezone?.id,
-                        isp: data.connection?.isp
-                    })
-                },
-                {
-                    url: 'http://ip-api.com/json/',
-                    adapter: (data) => ({
-                        ip: data.query,
-                        location: {
-                            country: data.country,
-                            countryCode: data.countryCode,
-                            city: data.city,
-                            region: data.regionName,
-                            latitude: data.lat,
-                            longitude: data.lon
-                        },
-                        timezone: data.timezone,
-                        isp: data.isp
-                    })
-                }
             ];
 
             let lastError;
@@ -226,7 +229,8 @@ class ProxyValidator {
                         },
                         timezone: data.timezone || 'UTC',
                         language: this._getLanguageFromCountry(data.location.countryCode),
-                        isp: data.isp || 'Unknown'
+                        isp: data.isp || 'Unknown',
+                        type: data.type || 'Unknown'
                     };
                 } catch (err) {
                     console.warn(`[ProxyValidator] Provider ${provider.url} failed:`, err.message);
@@ -266,23 +270,7 @@ class ProxyValidator {
             // Try multiple providers
             const providers = [
                 {
-                    url: `https://ipapi.co/${ip}/json/`,
-                    adapter: (data) => ({
-                        ip: data.ip,
-                        location: {
-                            country: data.country_name,
-                            countryCode: data.country_code,
-                            city: data.city,
-                            region: data.region,
-                            latitude: data.latitude,
-                            longitude: data.longitude
-                        },
-                        timezone: data.timezone,
-                        isp: data.org
-                    })
-                },
-                {
-                    url: `https://ipwho.is/${ip}`,
+                    url: `https://ipwho.is/${ip}?lang=zh-CN`,
                     adapter: (data) => ({
                         ip: data.ip,
                         location: {
@@ -298,7 +286,7 @@ class ProxyValidator {
                     })
                 },
                 {
-                    url: `http://ip-api.com/json/${ip}`,
+                    url: `http://ip-api.com/json/${ip}?lang=zh-CN`,
                     adapter: (data) => ({
                         ip: data.query,
                         location: {
@@ -312,7 +300,23 @@ class ProxyValidator {
                         timezone: data.timezone,
                         isp: data.isp
                     })
-                }
+                },
+                {
+                    url: `https://ipapi.co/${ip}/json/`,
+                    adapter: (data) => ({
+                        ip: data.ip,
+                        location: {
+                            country: data.country_name,
+                            countryCode: data.country_code,
+                            city: data.city,
+                            region: data.region,
+                            latitude: data.latitude,
+                            longitude: data.longitude
+                        },
+                        timezone: data.timezone,
+                        isp: data.org
+                    })
+                },
             ];
 
             let lastError;
