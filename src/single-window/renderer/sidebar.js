@@ -807,7 +807,20 @@
 
     // Render loading state initially if empty
     if (!ipContainer.hasChildNodes()) {
-      ipContainer.innerHTML = '<div class="ip-row"><span class="loading-dots">获取IP信息</span></div>';
+      const loadingRow = document.createElement('div');
+      loadingRow.className = 'ip-row';
+      
+      const loadingText = document.createElement('span');
+      loadingText.className = 'loading-dots';
+      loadingText.textContent = '获取IP信息';
+      loadingRow.appendChild(loadingText);
+      
+      // Always show shield icon
+      const envIcon = createEnvInfoIcon(account);
+      envIcon.classList.add('inline-shield');
+      loadingRow.appendChild(envIcon);
+      
+      ipContainer.appendChild(loadingRow);
     }
 
     try {
@@ -817,11 +830,11 @@
       if (result.success) {
         // Inject account into result for renderIPDetails to use
         result._account = account;
-        renderIPDetails(ipContainer, result);
+        renderIPDetails(ipContainer, result, account);
         account.lastIPInfo = result;
         account.lastIPInfoTimestamp = Date.now();
       } else {
-        renderIPError(ipContainer, result.error);
+        renderIPError(ipContainer, result.error, result.message, account);
       }
     } catch (error) {
       console.error(`[Sidebar] Failed to fetch IP info for account ${account.id}:`, error);
@@ -829,14 +842,14 @@
       const errorMsg = error.message && error.message.includes('No handler')
         ? '需重启应用'
         : (error.message || '获取失败');
-      renderIPError(ipContainer, errorMsg, error.message);
+      renderIPError(ipContainer, errorMsg, error.message, account);
     }
   }
 
   /**
    * Render IP details into container (Simplified Version)
    */
-  function renderIPDetails(container, info) {
+  function renderIPDetails(container, info, account) {
     container.innerHTML = '';
 
     // Simplification: One compact row
@@ -878,20 +891,10 @@
     row.appendChild(ipSpan);
 
     // Shield Icon (Environment Info) - Placed after IP
-    const shieldIcon = createEnvInfoIcon(info._account || {}); // Pass account if available, or we need to pass it down
-    // Note: createEnvInfoIcon expects an account object. 
-    // In fetchAndRenderIPInfo, we have 'account'. We need to pass it to renderIPDetails or append it outside.
-    
-    // Re-implementing logic:
-    // The shield icon was created in createAccountItem. 
-    // If we want it in the IP row, we should create/move it here.
-    // But IP info is async. The shield icon should be visible immediately?
-    // Actually, createEnvInfoIcon uses async tooltips. It can be rendered immediately.
-    
-    // Let's append it here if we can access 'account'.
-    // We need to update renderIPDetails signature to accept 'account'.
-    if (info._account) {
-       const envIcon = createEnvInfoIcon(info._account);
+    // Support passing account via info._account (legacy/injected) or direct argument
+    const targetAccount = account || info._account;
+    if (targetAccount) {
+       const envIcon = createEnvInfoIcon(targetAccount);
        envIcon.classList.add('inline-shield');
        row.appendChild(envIcon);
     }
@@ -921,8 +924,31 @@
     container.appendChild(row);
   }
 
-  function renderIPError(container, message, fullError) {
-    container.innerHTML = `<div class="ip-row compact" title="${fullError || ''}"><span class="ip-icon error">⚠️</span> <span class="ip-meta">${message}</span></div>`;
+  function renderIPError(container, message, fullError, account) {
+    container.innerHTML = '';
+    
+    const row = document.createElement('div');
+    row.className = 'ip-row compact';
+    if (fullError) row.title = fullError;
+
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'ip-icon error';
+    iconSpan.textContent = '⚠️';
+    row.appendChild(iconSpan);
+
+    const metaSpan = document.createElement('span');
+    metaSpan.className = 'ip-meta';
+    metaSpan.textContent = message;
+    row.appendChild(metaSpan);
+
+    // Shield Icon
+    if (account) {
+      const envIcon = createEnvInfoIcon(account);
+      envIcon.classList.add('inline-shield');
+      row.appendChild(envIcon);
+    }
+
+    container.appendChild(row);
   }
 
   function getFlagEmoji(countryCode) {
@@ -1762,7 +1788,7 @@
         }
       }
       if (account.lastIPInfo.success !== false) {
-        renderIPDetails(ipContainer, account.lastIPInfo);
+        renderIPDetails(ipContainer, account.lastIPInfo, account);
         console.log(`[Sidebar] Using cached IP info for account ${account.id}`);
       }
     } else if (isNewAccount) {
@@ -2115,8 +2141,18 @@
       }
     }
 
-    // Show loading state
-    ipContainer.innerHTML = '<div class="ip-row"><span class="loading-dots">更新IP信息</span></div>';
+    // Show loading state, keep shield icon visible
+    ipContainer.innerHTML = '';
+    const loadingRow = document.createElement('div');
+    loadingRow.className = 'ip-row';
+    const loadingText = document.createElement('span');
+    loadingText.className = 'loading-dots';
+    loadingText.textContent = '更新IP信息';
+    loadingRow.appendChild(loadingText);
+    const envIcon = createEnvInfoIcon(account);
+    envIcon.classList.add('inline-shield');
+    loadingRow.appendChild(envIcon);
+    ipContainer.appendChild(loadingRow);
 
     // Delay slightly to ensure the view's proxy is fully configured
     setTimeout(async () => {
@@ -2124,12 +2160,12 @@
         const result = await window.electronAPI.invoke('env:get-account-network-info', accountId);
 
         if (result.success) {
-          renderIPDetails(ipContainer, result);
+          renderIPDetails(ipContainer, result, account);
           account.lastIPInfo = result;
           account.lastIPInfoTimestamp = Date.now();
           console.log(`[Sidebar] IP info refreshed for account ${accountId}:`, result.ip, result.isProxy ? '(proxy)' : '(local)');
         } else {
-          renderIPError(ipContainer, result.error);
+          renderIPError(ipContainer, result.error, result.message, account);
           console.warn(`[Sidebar] Failed to refresh IP info for account ${accountId}:`, result.error);
         }
       } catch (error) {
@@ -2137,7 +2173,7 @@
         const errorMsg = error.message && error.message.includes('No handler')
           ? '需重启应用'
           : (error.message || '获取失败');
-        renderIPError(ipContainer, errorMsg, error.message);
+        renderIPError(ipContainer, errorMsg, error.message, account);
       }
     }, 500); // Small delay to ensure proxy is active
   }
