@@ -24,7 +24,7 @@
   const translateSettingsPanel = new TranslateSettingsPanel({
     host: translateSettingsHost,
     placeholderEl: translatePlaceholderEl,
-    onCollapse: () => toggleSection('translate'),
+    onCollapse: () => handlePanelClick('translate'),
     getActiveChatInfo: fetchActiveChatInfo,
     applyConfigToView
   });
@@ -42,8 +42,8 @@
       applyWidths(layout.widths);
     }
 
-    // 强制面板默认展开
-    currentState = 'expanded';
+    // 强制面板默认收起
+    currentState = 'collapsed';
 
     console.log('[translatePanelLayout] Initializing with state:', currentState);
     console.log('[translatePanelLayout] Panel width:', widths.expanded);

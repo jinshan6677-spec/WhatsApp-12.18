@@ -2039,13 +2039,17 @@
 
     const isCollapsed = sidebar.dataset.collapsed === 'true';
     const newState = !isCollapsed;
-    const newWidth = newState ? 80 : 219;
+    const collapsedWidth = 80;
+    const expandedWidth = 219;
+    const newWidth = newState ? collapsedWidth : expandedWidth;
 
     sidebar.dataset.collapsed = String(newState);
 
     // Update CSS variables for sidebar width
+    // 关键修复：始终设置所有相关的CSS变量，确保状态切换时宽度正确
     document.documentElement.style.setProperty('--sidebar-width', `${newWidth}px`);
-    document.documentElement.style.setProperty('--sidebar-collapsed-width', `${newWidth}px`);
+    document.documentElement.style.setProperty('--sidebar-collapsed-width', `${collapsedWidth}px`);
+    document.documentElement.style.setProperty('--sidebar-expanded-width', `${expandedWidth}px`);
 
     // Update toggle button title
     const toggleBtn = document.getElementById('sidebar-toggle');
@@ -2081,34 +2085,64 @@
   function restoreSidebarState() {
     try {
       const savedState = localStorage.getItem('sidebar-collapsed');
+      const sidebar = document.getElementById('sidebar');
+      if (!sidebar) return;
+
+      const collapsedWidth = 80;
+      const expandedWidth = 219;
+
       if (savedState === 'true') {
-        const sidebar = document.getElementById('sidebar');
-        if (sidebar) {
-          const collapsedWidth = 80;
-          sidebar.dataset.collapsed = 'true';
+        // Restore collapsed state
+        sidebar.dataset.collapsed = 'true';
 
-          // Update CSS variables for sidebar width
-          document.documentElement.style.setProperty('--sidebar-width', `${collapsedWidth}px`);
-          document.documentElement.style.setProperty('--sidebar-collapsed-width', `${collapsedWidth}px`);
+        // 关键修复：确保两种状态的CSS变量都正确设置
+        // 即使是收起状态，也要设置展开宽度，以便后续展开时使用
+        document.documentElement.style.setProperty('--sidebar-width', `${collapsedWidth}px`);
+        document.documentElement.style.setProperty('--sidebar-collapsed-width', `${collapsedWidth}px`);
+        document.documentElement.style.setProperty('--sidebar-expanded-width', `${expandedWidth}px`);
 
-          // Update toggle button title
-          const toggleBtn = document.getElementById('sidebar-toggle');
-          if (toggleBtn) {
-            toggleBtn.title = '展开侧边栏';
-          }
+        // Update toggle button title
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        if (toggleBtn) {
+          toggleBtn.title = '展开侧边栏';
+        }
 
-          // Notify main process about the collapsed state
-          if (window.electronAPI) {
-            // Use both methods for compatibility
-            window.electronAPI.invoke('resize-sidebar', collapsedWidth).catch(err => {
-              console.warn('Failed to invoke resize-sidebar:', err);
-            });
+        // Notify main process about the collapsed state
+        if (window.electronAPI) {
+          // Use both methods for compatibility
+          window.electronAPI.invoke('resize-sidebar', collapsedWidth).catch(err => {
+            console.warn('Failed to invoke resize-sidebar:', err);
+          });
 
-            // Fallback: send sidebar-resized event
-            window.electronAPI.send('sidebar-resized', collapsedWidth);
+          // Fallback: send sidebar-resized event
+          window.electronAPI.send('sidebar-resized', collapsedWidth);
 
-            console.log(`[Sidebar] Restored collapsed state, width: ${collapsedWidth}px`);
-          }
+          console.log(`[Sidebar] Restored collapsed state, width: ${collapsedWidth}px`);
+        }
+      } else {
+        // Restore expanded state (or default state)
+        sidebar.dataset.collapsed = 'false';
+
+        // 确保展开状态的CSS变量正确
+        document.documentElement.style.setProperty('--sidebar-width', `${expandedWidth}px`);
+        document.documentElement.style.setProperty('--sidebar-collapsed-width', `${collapsedWidth}px`);
+        document.documentElement.style.setProperty('--sidebar-expanded-width', `${expandedWidth}px`);
+
+        // Update toggle button title
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        if (toggleBtn) {
+          toggleBtn.title = '收起侧边栏';
+        }
+
+        // Notify main process about the expanded state
+        if (window.electronAPI) {
+          window.electronAPI.invoke('resize-sidebar', expandedWidth).catch(err => {
+            console.warn('Failed to invoke resize-sidebar:', err);
+          });
+
+          window.electronAPI.send('sidebar-resized', expandedWidth);
+
+          console.log(`[Sidebar] Restored expanded state, width: ${expandedWidth}px`);
         }
       }
     } catch (e) {

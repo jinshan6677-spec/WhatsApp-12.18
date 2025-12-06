@@ -1413,11 +1413,19 @@ button:focus-visible {
   font-size: 14px;
 }
 
+
 /* Sidebar collapsed state */
 #sidebar[data-collapsed="true"] {
   width: var(--sidebar-collapsed-width) !important;
   min-width: var(--sidebar-collapsed-width) !important;
 }
+
+/* Sidebar expanded state - 显式设置展开宽度 */
+#sidebar[data-collapsed="false"] {
+  width: var(--sidebar-width) !important;
+  min-width: 219px !important;
+}
+
 
 #sidebar[data-collapsed="true"] .sidebar-toggle-btn {
   transform: rotate(180deg);
