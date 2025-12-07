@@ -511,8 +511,16 @@
     // Avatar
     const avatar = document.createElement('div');
     avatar.className = 'account-avatar';
-    // Only show initial and color if there is a name
-    if (account.name || account.profileName) {
+    
+    // Check if there's an avatar URL first
+    if (account.avatarUrl) {
+      const img = document.createElement('img');
+      img.src = account.avatarUrl;
+      img.alt = account.name || account.profileName || '';
+      img.className = 'account-avatar-image';
+      avatar.appendChild(img);
+    } else if (account.name || account.profileName) {
+      // Show initial and color if there is a name but no avatar
       avatar.textContent = getAccountInitial(account.name || account.profileName);
       avatar.style.background = getAccountColor(account.id);
     }

@@ -1,7 +1,7 @@
 {
-  "name": "whatsapp-desktop-translation",
+  "name": "boss-stable-everyday-prosperity",
   "version": "1.0.0",
-  "description": "WhatsApp Desktop application with comprehensive translation support",
+  "description": "Boss Stable Everyday Prosperity - Professional WhatsApp Desktop Application",
   "main": "src/main-refactored.js",
   "scripts": {
     "start": "electron .",
@@ -63,14 +63,15 @@
   "devDependencies": {
     "electron": "^39.2.5",
     "electron-builder": "^26.0.12",
+    "electron-icon-maker": "^0.0.5",
     "eslint": "^8.56.0",
     "fast-check": "^4.3.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.2.0"
   },
   "build": {
-    "appId": "com.whatsapp.desktop.translation",
-    "productName": "WhatsApp Desktop Translation",
+    "appId": "com.laobenwenle.tiantianwang",
+    "productName": "BossStable",
     "copyright": "Copyright © 2024 ${author}",
     "directories": {
       "output": "dist",
@@ -128,7 +129,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "WhatsApp Desktop",
+      "shortcutName": "BossStable",
       "license": "LICENSE",
       "installerIcon": "resources/icon.ico",
       "uninstallerIcon": "resources/icon.ico",
@@ -204,8 +205,8 @@
       "icon": "resources/icons",
       "category": "Network;InstantMessaging",
       "artifactName": "${productName}-${version}-${arch}.${ext}",
-      "synopsis": "WhatsApp Desktop with Translation",
-      "description": "WhatsApp Desktop application with comprehensive translation support including Google Translate, GPT-4, Gemini, and DeepSeek."
+      "synopsis": "老板稳了！天天旺",
+      "description": "老板稳了！天天旺 - 专业的WhatsApp桌面应用，支持多账号管理、翻译功能等。"
     },
     "appImage": {
       "license": "LICENSE"

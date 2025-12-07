@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await new Promise(r => setTimeout(r, 2000));
 
     // Path to the auto-extraction script
-    const scriptPath = path.join(__dirname, '../scripts/whatsapp-profile-autoextract.js');
+    const scriptPath = path.join(__dirname, 'scripts/whatsapp-profile-autoextract.js');
 
     // Check if file exists
     if (fs.existsSync(scriptPath)) {
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Inject unread count observer
   try {
-    const unreadScriptPath = path.join(__dirname, '../scripts/whatsapp-unread-observer.js');
+    const unreadScriptPath = path.join(__dirname, 'scripts/whatsapp-unread-observer.js');
     if (fs.existsSync(unreadScriptPath)) {
       const scriptContent = await fs.promises.readFile(unreadScriptPath, 'utf8');
       const wrappedScript = `
@@ -502,6 +502,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       script.id = 'whatsapp-unread-observer';
       (document.head || document.documentElement).appendChild(script);
       console.log('[Preload-View] ✓ Unread observer script injected');
+    } else {
+      console.warn('[Preload-View] Unread observer script not found:', unreadScriptPath);
     }
   } catch (error) {
     console.error('[Preload-View] Failed to inject unread observer script:', error);
