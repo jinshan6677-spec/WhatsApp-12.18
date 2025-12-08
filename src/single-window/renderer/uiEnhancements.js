@@ -11,6 +11,10 @@
   let draggedAccountId = null;
   let tooltipElement = null;
   let tooltipTimeout = null;
+  let tooltipHideTimeout = null;
+  let currentTooltipTarget = null;
+  let currentTooltipText = '';
+  let scrollResizeRaf = null;
   let shortcutsHelpVisible = false;
 
   /**
@@ -35,6 +39,13 @@
     // Add tooltip listeners to elements with title attribute
     document.addEventListener('mouseover', handleTooltipShow);
     document.addEventListener('mouseout', handleTooltipHide);
+    window.addEventListener('scroll', handleTooltipReposition, true);
+    window.addEventListener('resize', handleTooltipReposition);
+    document.addEventListener('touchstart', function () {
+      clearTimeout(tooltipTimeout);
+      clearTimeout(tooltipHideTimeout);
+      hideTooltip();
+    }, { passive: true });
     // Removed mousemove to prevent "jumping" effect and improve performance
   }
 
@@ -42,22 +53,46 @@
    * Show tooltip on hover
    */
   function handleTooltipShow(e) {
-    const target = e.target.closest('[title]');
-    if (!target || !target.title) return;
+    const target = e.target.closest('[title], [data-original-title]');
+    if (!target) return;
+    const textCandidate = target.dataset.originalTitle || target.title;
+    if (!textCandidate) return;
 
-    // Clear any existing timeout
+    const panelEl = document.getElementById('translate-panel');
+    const isExpanded = panelEl && panelEl.getAttribute('data-state') === 'expanded';
+    if (isExpanded) {
+      const inMenu = !!target.closest('.translate-panel-menu');
+      if (inMenu) {
+        const btn = target.closest('.panel-menu-btn');
+        const panelType = btn ? btn.getAttribute('data-panel') : null;
+        if (panelType === 'translate' || panelType === 'environment') {
+          if (!target.dataset.originalTitle) {
+            target.dataset.originalTitle = target.title;
+            target.title = '';
+          }
+          return;
+        }
+      }
+    }
+
     clearTimeout(tooltipTimeout);
+    clearTimeout(tooltipHideTimeout);
+    if (currentTooltipTarget && currentTooltipTarget !== target && tooltipElement && tooltipElement.classList.contains('show')) {
+      hideTooltip();
+    }
 
-    // Store original title and clear it (to prevent browser tooltip)
-    if (!target.dataset.originalTitle) {
+    if (!target.dataset.originalTitle && target.title) {
       target.dataset.originalTitle = target.title;
       target.title = '';
     }
 
-    // Show tooltip after short delay (fast response)
+    currentTooltipTarget = target;
+    currentTooltipText = target.dataset.originalTitle || textCandidate;
+    const showFor = target;
     tooltipTimeout = setTimeout(() => {
-      showTooltip(target, target.dataset.originalTitle);
-    }, 100); // Reduced from 500ms to 100ms
+      if (currentTooltipTarget !== showFor) return;
+      showTooltip(showFor, currentTooltipText);
+    }, 100);
   }
 
   /**
@@ -66,24 +101,21 @@
   function handleTooltipHide(e) {
     const target = e.target.closest('[title], [data-original-title]');
     if (!target) return;
-
+    const related = e.relatedTarget;
+    if (related && target.contains(related)) return;
     clearTimeout(tooltipTimeout);
-    hideTooltip();
-
-    // Restore title on hide? No, keep it in dataset to avoid browser tooltip conflict
-    // But if we don't restore, dynamic title updates won't be seen unless we handle mutation.
-    // For now, let's restore it to be safe for updates, 
-    // BUT restoring it immediately might trigger browser tooltip if mouse is still there?
-    // Let's leave it in dataset. If the app updates 'title', it won't update 'dataset.originalTitle' automatically.
-    // This is a known limitation of this simple implementation. 
-    // However, for IP tooltip, we set 'title' when rendering.
-
-    // Actually, if we want to support dynamic updates, we should probably observe mutations or
-    // just put it back on mouseout.
-    if (target.dataset.originalTitle) {
-      target.title = target.dataset.originalTitle;
-      delete target.dataset.originalTitle;
-    }
+    clearTimeout(tooltipHideTimeout);
+    tooltipHideTimeout = setTimeout(() => {
+      hideTooltip();
+      if (target.dataset.originalTitle) {
+        target.title = target.dataset.originalTitle;
+        delete target.dataset.originalTitle;
+      }
+      if (currentTooltipTarget === target) {
+        currentTooltipTarget = null;
+        currentTooltipText = '';
+      }
+    }, 240);
   }
 
   /**
@@ -182,7 +214,20 @@
    * Hide tooltip
    */
   function hideTooltip() {
+    clearTimeout(tooltipTimeout);
+    clearTimeout(tooltipHideTimeout);
     tooltipElement.classList.remove('show');
+  }
+
+  function handleTooltipReposition() {
+    if (!tooltipElement || !tooltipElement.classList.contains('show') || !currentTooltipTarget) return;
+    if (scrollResizeRaf) cancelAnimationFrame(scrollResizeRaf);
+    const target = currentTooltipTarget;
+    const text = currentTooltipText;
+    scrollResizeRaf = requestAnimationFrame(function () {
+      if (!target || !text) return;
+      showTooltip(target, text);
+    });
   }
 
   /**

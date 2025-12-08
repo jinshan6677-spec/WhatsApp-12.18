@@ -401,12 +401,12 @@
 
   function bindEvents(panel, inst){
     panel.querySelectorAll('.env-collapsible-header').forEach(header => {
-      header.addEventListener('click', () => {
+      header.addEventListener('click', (e) => {
         const collapsible = header.closest('.env-collapsible');
         if (collapsible) {
           collapsible.classList.toggle('active');
-          if (inst.onCollapse) inst.onCollapse();
         }
+        e.stopPropagation();
       });
     });
     const autoSaveInputs = [
@@ -486,4 +486,3 @@
 
   window.TranslateSettingsRender = { render, bindEvents };
 })();
-
