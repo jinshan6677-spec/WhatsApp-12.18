@@ -256,7 +256,13 @@ function createEnvInfoIcon(account) {
 
   btn.addEventListener('mouseover', (e) => {
     if (!e.isTrusted) return;
-    btn.title = 'UA/IP加载中…';
+    const loadingText = 'UA/IP加载中…';
+    if (btn.dataset.originalTitle) {
+      btn.dataset.originalTitle = loadingText;
+      btn.removeAttribute('title');
+    } else {
+      btn.title = loadingText;
+    }
     setTimeout(() => {
       const evt = new MouseEvent('mouseover', { bubbles: true });
       btn.dispatchEvent(evt);
@@ -288,12 +294,12 @@ function createEnvInfoIcon(account) {
  */
 async function getLocalPublicIP(force = false) {
   if (typeof window === 'undefined' || !window.electronAPI) return null;
-  
+
   const now = Date.now();
   if (!force && _localIPCache.ip && now - _localIPCache.time < 60000) {
     return _localIPCache.ip;
   }
-  
+
   try {
     const res = await window.electronAPI.invoke('env:detect-network');
     if (res && res.success) {
@@ -315,7 +321,7 @@ async function getAccountUA(accountId) {
   if (typeof window === 'undefined' || !window.electronAPI) {
     return typeof navigator !== 'undefined' ? navigator.userAgent : '';
   }
-  
+
   try {
     const res = await window.electronAPI.getFingerprint(accountId);
     if (res && res.success && res.config) {
@@ -335,12 +341,12 @@ async function getAccountUA(accountId) {
  */
 async function getProxyIPInfo(account) {
   if (typeof window === 'undefined' || !window.electronAPI) return null;
-  
+
   const now = Date.now();
   if (account.lastIPInfo && account.lastIPInfoTimestamp && now - account.lastIPInfoTimestamp < 60000) {
     return account.lastIPInfo;
   }
-  
+
   try {
     const res = await window.electronAPI.invoke('env:get-account-network-info', account.id);
     if (res && res.success) {
@@ -361,7 +367,7 @@ async function getProxyIPInfo(account) {
  */
 async function refreshAccountIPInfo(accountId) {
   if (typeof document === 'undefined') return;
-  
+
   const accountList = document.getElementById('account-list');
   if (!accountList) return;
   if (typeof window === 'undefined' || !window.electronAPI) return;
