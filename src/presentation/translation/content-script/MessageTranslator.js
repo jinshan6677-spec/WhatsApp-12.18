@@ -43,10 +43,13 @@ class MessageTranslator {
       }
 
       // Extract message text
-      const textElement = messageNode.querySelector('.selectable-text[dir="ltr"], .selectable-text[dir="rtl"]') ||
+      // Extract message text
+      const textElement = messageNode.querySelector('.copyable-text span') ||
+        messageNode.querySelector('.copyable-text') ||
+        messageNode.querySelector('.selectable-text[dir="ltr"], .selectable-text[dir="rtl"]') ||
         messageNode.querySelector('.selectable-text') ||
-        messageNode.querySelector('[data-testid="conversation-text"]');
-
+        messageNode.querySelector('[data-testid="conversation-text"]') ||
+        messageNode.querySelector('[data-testid="msg-text"]');
       if (!textElement || !textElement.textContent.trim()) {
         console.log('[Translation] No text found in message, skipping');
         return;
@@ -119,7 +122,7 @@ class MessageTranslator {
           // Direct result object (translatedText, etc.)
           translationResult = response;
         }
-        
+
         console.log(`[Translation] ✅ Translation successful, using engine: ${translationResult.engineName || engineName}`);
         this.ui.displayTranslation(messageNode, translationResult);
       } else {

@@ -48,6 +48,7 @@ class TranslationUI {
 
     const messageContent = messageNode.querySelector('.copyable-text') ||
       messageNode.querySelector('[data-testid="msg-text"]') ||
+      messageNode.querySelector('.selectable-text') ||
       messageNode;
 
     if (messageContent.parentNode) {
@@ -179,9 +180,9 @@ class TranslationUI {
 
     // Inject keyframes for animation if not already present
     if (!document.getElementById('wa-animation-styles-v2')) {
-        const styleSheet = document.createElement('style');
-        styleSheet.id = 'wa-animation-styles-v2';
-        styleSheet.textContent = `
+      const styleSheet = document.createElement('style');
+      styleSheet.id = 'wa-animation-styles-v2';
+      styleSheet.textContent = `
             @keyframes waSlideInTopRight {
                 0% { opacity: 0; transform: translate(0, -20px); }
                 100% { opacity: 1; transform: translate(0, 0); }
@@ -191,7 +192,7 @@ class TranslationUI {
                 100% { opacity: 0; transform: translate(20px, 0); }
             }
         `;
-        document.head.appendChild(styleSheet);
+      document.head.appendChild(styleSheet);
     }
 
     const content = alert.querySelector('.alert-content');
@@ -257,24 +258,24 @@ class TranslationUI {
       flex-shrink: 0;
       margin-left: 4px;
     `;
-    
+
     closeBtn.onmouseenter = () => {
-        closeBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-        closeBtn.style.color = '#4B5563';
+      closeBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+      closeBtn.style.color = '#4B5563';
     };
-    
+
     closeBtn.onmouseleave = () => {
-        closeBtn.style.backgroundColor = 'transparent';
-        closeBtn.style.color = '#9CA3AF';
+      closeBtn.style.backgroundColor = 'transparent';
+      closeBtn.style.color = '#9CA3AF';
     };
 
     const removeAlert = () => {
-        if (alert.parentNode) {
-             alert.style.animation = 'waFadeOutRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards';
-             setTimeout(() => {
-                 if (alert.parentNode) alert.parentNode.removeChild(alert);
-             }, 300);
-        }
+      if (alert.parentNode) {
+        alert.style.animation = 'waFadeOutRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+        setTimeout(() => {
+          if (alert.parentNode) alert.parentNode.removeChild(alert);
+        }, 300);
+      }
     };
 
     closeBtn.onclick = () => {
@@ -285,7 +286,7 @@ class TranslationUI {
 
     // Auto remove after 4 seconds
     setTimeout(() => {
-        removeAlert();
+      removeAlert();
     }, 4000);
   }
 
@@ -357,7 +358,7 @@ class TranslationUI {
     const preview = document.createElement('div');
     preview.className = 'wa-realtime-preview';
     preview.style.display = 'none';
-    
+
     // New structure for dynamic layout - Compact Mode
     preview.innerHTML = `
       <div class="translation-header">
@@ -406,7 +407,7 @@ class TranslationUI {
     const resultTextDiv = preview.querySelector('.result-text');
     const originalPanel = preview.querySelector('.original-panel');
     const originalTextDiv = preview.querySelector('.original-text');
-    
+
     if (!resultTextDiv) {
       console.warn('[Translation] Result text div not found in preview');
       return;
@@ -428,146 +429,146 @@ class TranslationUI {
       resultTextDiv.className = 'translation-text result-text';
     }
 
-      // Apply Dynamic Layout Optimization
-      this.optimizeLayout(preview, originalText, text);
-    
-      preview.style.display = 'block';
-      // console.log('[Translation] Realtime preview shown');
-    }
-  
-    /**
-     * Optimize layout based on text analysis
-     */
-    optimizeLayout(previewElement, originalText, translatedText) {
-        if (!originalText || !translatedText) return;
-  
-        const originalLen = originalText.length;
-        const translatedLen = translatedText.length;
-        const totalLen = originalLen + translatedLen;
-        const isVoiceResult = previewElement.classList.contains('wa-voice-result');
-        
-        // 1. Text Length Analysis
-        const isLongText = totalLen > 100;
-        const isVeryLongText = totalLen > 300;
-        
-        // 2. Complexity Assessment
-        const originalLines = originalText.split('\n').length;
-        const hasLineBreaks = originalLines > 1;
-  
-        const wrapper = previewElement.querySelector('.translation-content-wrapper');
-        const originalPanel = previewElement.querySelector('.original-panel');
-        const resultPanel = previewElement.querySelector('.result-panel');
-  
-        // Reset basic styles
-        wrapper.style.flexDirection = 'column';
-        originalPanel.style.flex = '1';
-        resultPanel.style.flex = '1';
-        
-        // 3. Responsive & Dynamic Layout Strategy
-        if (isVeryLongText) {
-            // For very long text, limit max height and allow scroll
-            wrapper.style.maxHeight = '250px';
-            wrapper.style.overflowY = 'auto';
-        } else {
-            wrapper.style.maxHeight = 'none';
-            wrapper.style.overflowY = 'visible';
-        }
-  
-        // 5. Visual Weight Allocation
-        const baseFontSize = isVoiceResult ? '12px' : '13px';
-        const smallFontSize = isVoiceResult ? '11px' : '12px';
+    // Apply Dynamic Layout Optimization
+    this.optimizeLayout(preview, originalText, text);
 
-        if (isLongText) {
-            // Make result slightly more prominent
-            resultPanel.style.flex = '1.2';
-            originalPanel.style.opacity = '0.7'; // Dim original more
-            
-            // Dynamic font sizing for better fit
-            if (totalLen > 200) {
-                previewElement.style.fontSize = smallFontSize;
-            } else {
-                previewElement.style.fontSize = baseFontSize;
-            }
-        } else {
-            originalPanel.style.opacity = '0.6';
-            previewElement.style.fontSize = baseFontSize;
-        }
-  
-        // 4. Smart Line Breaking / Spacing - Compact
-        const gapSize = isVoiceResult ? (hasLineBreaks ? '4px' : '2px') : (hasLineBreaks ? '6px' : '4px');
-        wrapper.style.gap = gapSize;
+    preview.style.display = 'block';
+    // console.log('[Translation] Realtime preview shown');
+  }
+
+  /**
+   * Optimize layout based on text analysis
+   */
+  optimizeLayout(previewElement, originalText, translatedText) {
+    if (!originalText || !translatedText) return;
+
+    const originalLen = originalText.length;
+    const translatedLen = translatedText.length;
+    const totalLen = originalLen + translatedLen;
+    const isVoiceResult = previewElement.classList.contains('wa-voice-result');
+
+    // 1. Text Length Analysis
+    const isLongText = totalLen > 100;
+    const isVeryLongText = totalLen > 300;
+
+    // 2. Complexity Assessment
+    const originalLines = originalText.split('\n').length;
+    const hasLineBreaks = originalLines > 1;
+
+    const wrapper = previewElement.querySelector('.translation-content-wrapper');
+    const originalPanel = previewElement.querySelector('.original-panel');
+    const resultPanel = previewElement.querySelector('.result-panel');
+
+    // Reset basic styles
+    wrapper.style.flexDirection = 'column';
+    originalPanel.style.flex = '1';
+    resultPanel.style.flex = '1';
+
+    // 3. Responsive & Dynamic Layout Strategy
+    if (isVeryLongText) {
+      // For very long text, limit max height and allow scroll
+      wrapper.style.maxHeight = '250px';
+      wrapper.style.overflowY = 'auto';
+    } else {
+      wrapper.style.maxHeight = 'none';
+      wrapper.style.overflowY = 'visible';
     }
 
-    attachCopyHandlers() {
-      if (this._copyHandlersAttached) return;
-      const isTranslationContainer = (el) => {
-        if (!el) return false;
-        return (
-          el.closest('.wa-realtime-preview') ||
-          el.closest('.wa-translation-result') ||
-          el.closest('.wa-voice-result-container')
-        );
-      };
-      const resolveTargetTextEl = (target) => {
-        if (!target) return null;
-        return target.closest('.original-text, .result-text, .translation-text, .wa-voice-original-text, .wa-voice-translated-text');
-      };
-      const getSelectionTextIfInside = (container) => {
-        const sel = window.getSelection();
-        if (!sel || sel.rangeCount === 0) return '';
-        const range = sel.getRangeAt(0);
-        const ancestor = range.commonAncestorContainer.nodeType === 1
-          ? range.commonAncestorContainer
-          : range.commonAncestorContainer.parentElement;
-        if (ancestor && container.contains(ancestor)) {
-          return sel.toString();
-        }
-        return '';
-      };
-      const copyText = async (text) => {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(text);
-            return true;
-          }
-        } catch (_) {}
-        try {
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.position = 'fixed';
-          ta.style.top = '-1000px';
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          const ok = document.execCommand('copy');
-          document.body.removeChild(ta);
-          return ok;
-        } catch (_) {
-          return false;
-        }
-      };
-      document.addEventListener('click', async (e) => {
-        if (!e.ctrlKey) return;
-        const targetEl = resolveTargetTextEl(e.target);
-        if (!targetEl) return;
-        if (!isTranslationContainer(targetEl)) return;
-        const selected = getSelectionTextIfInside(targetEl).trim();
-        const text = selected || (targetEl.textContent || '').trim();
-        if (!text) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const ok = await copyText(text);
-        if (ok) {
-          const isOriginal = targetEl.classList.contains('original-text') || targetEl.classList.contains('wa-voice-original-text');
-          const isTranslated = targetEl.classList.contains('result-text') || targetEl.classList.contains('wa-voice-translated-text') || targetEl.classList.contains('translation-text');
-          const msg = isOriginal ? '已复制原文' : (isTranslated ? '已复制译文' : '已复制');
-          this.showToast(msg, 'success');
-        } else {
-          this.showToast('复制失败', 'error');
-        }
-      }, true);
-      this._copyHandlersAttached = true;
+    // 5. Visual Weight Allocation
+    const baseFontSize = isVoiceResult ? '12px' : '13px';
+    const smallFontSize = isVoiceResult ? '11px' : '12px';
+
+    if (isLongText) {
+      // Make result slightly more prominent
+      resultPanel.style.flex = '1.2';
+      originalPanel.style.opacity = '0.7'; // Dim original more
+
+      // Dynamic font sizing for better fit
+      if (totalLen > 200) {
+        previewElement.style.fontSize = smallFontSize;
+      } else {
+        previewElement.style.fontSize = baseFontSize;
+      }
+    } else {
+      originalPanel.style.opacity = '0.6';
+      previewElement.style.fontSize = baseFontSize;
     }
+
+    // 4. Smart Line Breaking / Spacing - Compact
+    const gapSize = isVoiceResult ? (hasLineBreaks ? '4px' : '2px') : (hasLineBreaks ? '6px' : '4px');
+    wrapper.style.gap = gapSize;
+  }
+
+  attachCopyHandlers() {
+    if (this._copyHandlersAttached) return;
+    const isTranslationContainer = (el) => {
+      if (!el) return false;
+      return (
+        el.closest('.wa-realtime-preview') ||
+        el.closest('.wa-translation-result') ||
+        el.closest('.wa-voice-result-container')
+      );
+    };
+    const resolveTargetTextEl = (target) => {
+      if (!target) return null;
+      return target.closest('.original-text, .result-text, .translation-text, .wa-voice-original-text, .wa-voice-translated-text');
+    };
+    const getSelectionTextIfInside = (container) => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return '';
+      const range = sel.getRangeAt(0);
+      const ancestor = range.commonAncestorContainer.nodeType === 1
+        ? range.commonAncestorContainer
+        : range.commonAncestorContainer.parentElement;
+      if (ancestor && container.contains(ancestor)) {
+        return sel.toString();
+      }
+      return '';
+    };
+    const copyText = async (text) => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (_) { }
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (_) {
+        return false;
+      }
+    };
+    document.addEventListener('click', async (e) => {
+      if (!e.ctrlKey) return;
+      const targetEl = resolveTargetTextEl(e.target);
+      if (!targetEl) return;
+      if (!isTranslationContainer(targetEl)) return;
+      const selected = getSelectionTextIfInside(targetEl).trim();
+      const text = selected || (targetEl.textContent || '').trim();
+      if (!text) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const ok = await copyText(text);
+      if (ok) {
+        const isOriginal = targetEl.classList.contains('original-text') || targetEl.classList.contains('wa-voice-original-text');
+        const isTranslated = targetEl.classList.contains('result-text') || targetEl.classList.contains('wa-voice-translated-text') || targetEl.classList.contains('translation-text');
+        const msg = isOriginal ? '已复制原文' : (isTranslated ? '已复制译文' : '已复制');
+        this.showToast(msg, 'success');
+      } else {
+        this.showToast('复制失败', 'error');
+      }
+    }, true);
+    this._copyHandlersAttached = true;
+  }
 
   /**
    * Hide realtime preview
@@ -1301,16 +1302,16 @@ class TranslationUI {
 
     const container = document.createElement('div');
     container.className = 'wa-voice-translate-block';
-    
+
     const targetLang = this.core.config.global.targetLang || '中文';
-    
+
     container.innerHTML = `
       <div class="wa-voice-separator-dashed"></div>
       <div class="wa-voice-translate-btn-inner">
         点击翻译 【${targetLang}】
       </div>
     `;
-    
+
     return container;
   }
 
@@ -1321,24 +1322,24 @@ class TranslationUI {
   showVoiceTranslationLoading(voiceMessageElement, targetPlayer = null) {
     // 尝试找到现有的翻译按钮块
     const translateBlock = voiceMessageElement.querySelector('.wa-voice-translate-block');
-    
-    if (translateBlock) {
-        const inner = translateBlock.querySelector('.wa-voice-translate-btn-inner');
-        if (inner) {
-            inner.innerHTML = '⏳ 正在翻译...';
-            inner.style.backgroundColor = '#6c757d'; // Grey
-            inner.style.cursor = 'wait';
-        }
-        // 同步在播放器下方创建/复用结果容器，以保证“同框”位置一致
-        const { bubble, anchor } = this.resolveBubbleAndAnchor(voiceMessageElement, targetPlayer);
-        let container = bubble.querySelector('.wa-voice-result-container');
-        if (!container) {
-          container = document.createElement('div');
-          container.className = 'wa-voice-result-container';
-          this.insertAfterAnchor(bubble, anchor, container);
-        }
 
-        container.innerHTML = `
+    if (translateBlock) {
+      const inner = translateBlock.querySelector('.wa-voice-translate-btn-inner');
+      if (inner) {
+        inner.innerHTML = '⏳ 正在翻译...';
+        inner.style.backgroundColor = '#6c757d'; // Grey
+        inner.style.cursor = 'wait';
+      }
+      // 同步在播放器下方创建/复用结果容器，以保证“同框”位置一致
+      const { bubble, anchor } = this.resolveBubbleAndAnchor(voiceMessageElement, targetPlayer);
+      let container = bubble.querySelector('.wa-voice-result-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.className = 'wa-voice-result-container';
+        this.insertAfterAnchor(bubble, anchor, container);
+      }
+
+      container.innerHTML = `
       <div class="wa-voice-separator-dashed"></div>
       <div class="wa-voice-content-row">
            <div class="wa-voice-refresh-icon">⏳</div>
@@ -1347,16 +1348,16 @@ class TranslationUI {
            </div>
       </div>
     `;
-        return;
+      return;
     }
 
     // 如果没有按钮（可能是重试），则查找或创建结果容器
     let container = voiceMessageElement.querySelector('.wa-voice-result-container');
     if (!container) {
-        const { bubble, anchor } = this.resolveBubbleAndAnchor(voiceMessageElement, targetPlayer);
-        container = document.createElement('div');
-        container.className = 'wa-voice-result-container';
-        this.insertAfterAnchor(bubble, anchor, container);
+      const { bubble, anchor } = this.resolveBubbleAndAnchor(voiceMessageElement, targetPlayer);
+      container = document.createElement('div');
+      container.className = 'wa-voice-result-container';
+      this.insertAfterAnchor(bubble, anchor, container);
     }
 
     container.innerHTML = `
@@ -1385,20 +1386,20 @@ class TranslationUI {
     // 移除旧的翻译结果
     const existing = voiceMessageElement.querySelector('.wa-voice-result-container');
     if (existing) existing.remove();
-    
+
     // 获取或创建结果容器
     // 我们直接附加到 voiceMessageElement (bubble) 的底部
     // 假设 voiceMessageElement 是从 findBubbleContainer 返回的或者传递进来的正确气泡
-    
+
     // 确保我们有正确的气泡容器
     const { bubble, anchor } = this.resolveBubbleAndAnchor(voiceMessageElement, targetPlayer);
 
     const container = document.createElement('div');
     container.className = 'wa-voice-result-container';
-    
+
     const original = result.original || '';
     const translated = result.translated || '';
-    
+
     container.innerHTML = `
       <div class="wa-voice-separator-dashed"></div>
       <div class="wa-voice-content-row">
@@ -1410,18 +1411,18 @@ class TranslationUI {
            </div>
       </div>
     `;
-    
+
     // 绑定刷新按钮事件
     const refreshBtn = container.querySelector('.wa-voice-refresh-icon');
     if (onRetry) {
-        refreshBtn.onclick = (e) => {
-            e.stopPropagation();
-            onRetry();
-        };
+      refreshBtn.onclick = (e) => {
+        e.stopPropagation();
+        onRetry();
+      };
     } else {
-        refreshBtn.style.display = 'none'; // 如果没有回调，隐藏按钮
+      refreshBtn.style.display = 'none'; // 如果没有回调，隐藏按钮
     }
-    
+
     this.insertAfterAnchor(bubble, anchor, container);
     console.log('[Translation] Voice translation displayed with new UI');
   }
@@ -1445,7 +1446,7 @@ class TranslationUI {
       container.className = 'wa-voice-result-container';
       this.insertAfterAnchor(bubble, anchor, container);
     }
-    
+
     container.innerHTML = `
       <div class="wa-voice-separator-dashed"></div>
       <div class="wa-voice-content-row">
@@ -1455,18 +1456,18 @@ class TranslationUI {
            </div>
       </div>
     `;
-    
+
     // 绑定重试事件
     const refreshBtn = container.querySelector('.wa-voice-refresh-icon');
     if (onRetry) {
-        refreshBtn.onclick = (e) => {
-            e.stopPropagation();
-            onRetry();
-        };
+      refreshBtn.onclick = (e) => {
+        e.stopPropagation();
+        onRetry();
+      };
     } else {
-        refreshBtn.style.cursor = 'default';
+      refreshBtn.style.cursor = 'default';
     }
-    
+
     console.log('[Translation] Voice translation error displayed:', errorMessage);
   }
 
