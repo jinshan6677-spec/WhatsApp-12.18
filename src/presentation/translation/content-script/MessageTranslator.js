@@ -140,7 +140,7 @@ class MessageTranslator {
    * Translate existing messages
    */
   translateExistingMessages() {
-    const existingMessages = document.querySelectorAll('.message-in, .message-out');
+    const existingMessages = document.querySelectorAll('[data-testid="msg-container"], .message-in, .message-out');
     console.log(`[Translation] Found ${existingMessages.length} existing messages`);
 
     existingMessages.forEach(msg => {
@@ -172,7 +172,7 @@ class MessageTranslator {
 
     setInterval(() => {
       if (this.core.config && this.core.config.global && this.core.config.global.autoTranslate) {
-        const messages = document.querySelectorAll('.message-in, .message-out');
+        const messages = document.querySelectorAll('[data-testid="msg-container"], .message-in, .message-out');
         let newCount = 0;
 
         messages.forEach(msg => {
@@ -207,7 +207,7 @@ class MessageTranslator {
     let cleanedCount = 0;
 
     translations.forEach(translation => {
-      const messageNode = translation.closest('.message-in, .message-out');
+      const messageNode = translation.closest('[data-testid="msg-container"], .message-in, .message-out');
       if (messageNode) {
         const rect = messageNode.getBoundingClientRect();
         const isVisible = rect.top < window.innerHeight && rect.bottom > 0;

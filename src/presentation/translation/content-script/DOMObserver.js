@@ -25,7 +25,8 @@ class DOMObserver {
    */
   observeMessages(retryCount = 0) {
     // Find main container
-    const mainContainer = document.querySelector('#main');
+    const mainContainer = document.querySelector('[data-testid="conversation-panel-messages"]') ||
+      document.querySelector('#main');
 
     if (!mainContainer) {
       if (retryCount < 10) {
@@ -41,15 +42,18 @@ class DOMObserver {
       this.messageObserver.disconnect();
     }
 
-    // Create MutationObserver - observe entire #main container
+    // Create MutationObserver - observe entire chat container
     this.messageObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === 1) {
             // Check if node itself is a message
-            if (node.classList && (node.classList.contains('message-in') || node.classList.contains('message-out'))) {
+            if (this.messageTranslator && this.messageTranslator.isMessageNode(node)) {
               console.log('[Translation] New message detected:', node);
-              if (node.classList.contains('message-out') && this.inputBoxTranslator && this.inputBoxTranslator.handleMessageSent) {
+              if (node.classList &&
+                node.classList.contains('message-out') &&
+                this.inputBoxTranslator &&
+                this.inputBoxTranslator.handleMessageSent) {
                 try { this.inputBoxTranslator.handleMessageSent(); } catch (_) {}
               }
               if (!node.querySelector('.wa-translation-result')) {
@@ -57,13 +61,8 @@ class DOMObserver {
               }
             }
 
-            // Check if it contains message nodes
-            if (this.messageTranslator.isMessageNode(node)) {
-              this.messageTranslator.handleNewMessage(node);
-            }
-
             // Also check child nodes for messages
-            const messages = node.querySelectorAll('.message-in, .message-out');
+            const messages = node.querySelectorAll('[data-testid="msg-container"], .message-in, .message-out');
             if (messages.length > 0) {
               console.log(`[Translation] Found ${messages.length} messages in added node`);
               messages.forEach(msg => {
